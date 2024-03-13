@@ -963,12 +963,10 @@ def estimate_transformer_impact(data: pd.DataFrame, target=ImpactTarget.Transfor
     """
 
     data = data.dropna()
-    # Define the feature columns (transformer options)
     feature_cols = [col for col in data.columns if col.startswith(target.value)]
     X = data[feature_cols]
     y = data["mean_test_score"]
 
-    # Define a pipeline with OneHotEncoder for categorical variables and LinearRegression model
     preprocessor = ColumnTransformer(
         transformers=[("onehot", OneHotEncoder(drop="first"), feature_cols)],
         remainder="passthrough",
@@ -978,10 +976,8 @@ def estimate_transformer_impact(data: pd.DataFrame, target=ImpactTarget.Transfor
         steps=[("preprocessor", preprocessor), ("regressor", LinearRegression())]
     )
 
-    # Fit the model
     model.fit(X, y)
 
-    # Get the feature names after one-hot encoding
     feature_names = (
         model.named_steps["preprocessor"]
         .named_transformers_["onehot"]

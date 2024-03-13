@@ -543,11 +543,11 @@ def run_tunning_for_config(
     (
         best_preproc_transformer_sarch,
         transformer_tun_all_civ_results,
-    ) = _tune_transformer_params(pipeline_config, features, labels, cv=3)
+    ) = _tune_transformer_params(pipeline_config, features, labels, cv=5)
     # TODO: export both this and hyperparams
     best_transformer_params = best_preproc_transformer_sarch.best_params_
     search_results, hyper_param_all_cv_results = _tune_model_params(
-        best_transformer_params, pipeline_config, features=features, labels=labels, cv=3
+        best_transformer_params, pipeline_config, features=features, labels=labels, cv=5
     )
 
     tuning_results = _build_tuning_result(

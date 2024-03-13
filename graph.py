@@ -15,6 +15,8 @@ from scipy.stats import (
     spearmanr,
     kruskal,
 )
+from scipy.optimize import minimize_scalar
+
 from sklearn.metrics import (
     confusion_matrix,
     roc_curve,
@@ -59,11 +61,9 @@ class CustomPowerScale(ScaleBase):
         """
         Set default locators and formatters to the axis.
         """
-        # AutoLocator automatically determines the tick locations.
+        # Autolocators automatically determines the tick locations.
         axis.set_major_locator(AutoLocator())
-        # AutoMinorLocator automatically determines the minor tick locations.
         axis.set_minor_locator(AutoMinorLocator())
-        # ScalarFormatter formats the ticks as scalar values.
         axis.set_major_formatter(ScalarFormatter())
 
     class CustomPowerTransform(Transform):
@@ -74,9 +74,7 @@ class CustomPowerScale(ScaleBase):
             self.factor = factor
 
         def transform_non_affine(self, y):
-            # Ensure y is an array
             y = np.asarray(y)
-            # Initialize the output array
             x = np.zeros_like(y)
 
             for i, yi in np.ndenumerate(y):
@@ -102,7 +100,6 @@ class CustomPowerScale(ScaleBase):
             self.factor = factor
 
         def transform_non_affine(self, y):
-            # Function to invert the transformation for a single value
             def invert_single_value(yi):
                 res = minimize_scalar(
                     lambda xi: (np.power(xi, (1 / (1 + self.factor * xi))) - yi) ** 2,
@@ -115,7 +112,6 @@ class CustomPowerScale(ScaleBase):
             if np.iterable(y):
                 return np.array([invert_single_value(yi) for yi in y])
             else:
-                # Single value case
                 return invert_single_value(y)
 
         def inverted(self):
@@ -134,12 +130,10 @@ def render_pca_component_plot(_explained_pc, title=None):
         data=_explained_pc,
         color="skyblue",
         label="Individual Variance",
-        legend=False,  # Disable the
+        legend=False
     )
-    ax_b.set_ylim([0, 1.1])  # Adjust as needed
-
-    barplot.set_ylim([0, 1])  # Adjust as needed
-    # barplot.legend_.remove()
+    ax_b.set_ylim([0, 1.1])
+    barplot.set_ylim([0, 1])
 
     lineplot_ax = plt.twinx()
 
@@ -233,7 +227,7 @@ def confusion_matrix_plot(
         )
         annot = annot.reshape(conf_matrix.shape)
     else:
-        annot = True  # Or use .2% format if you prefer
+        annot = True  # Or use .2% format
 
     sns.heatmap(
         conf_matrix_percentage,
@@ -300,7 +294,6 @@ def confusion_matrix_plot_v2(
 
     cmap_incorrect = sns.diverging_palette(220, 20, as_cmap=True)
     cmap_correct = cmap_incorrect.copy().reversed()
-    # cmap_correct = sns.light_palette("seagreen", as_cmap=True)
 
     sns.heatmap(
         cm_normalized,
@@ -452,9 +445,6 @@ def render_feature_importances_chart(
     title="Feature Importance",
     subtitle=None,
 ):
-    # Feature Importance Plot
-
-    # feature_importances = benchmark_model_target_xgb.feature_importances_
     plt.figure(figsize=(10, 8))
     ax = sns.barplot(data=feature_importances, y="Feature", x="Importance")
     ax.tick_params(axis="x", which="major", labelsize=16)
@@ -550,15 +540,15 @@ def add_threshold_sections(ax, sections, data):
         start = section["start"]
         start_data = section.get(
             "start_data", start
-        )  # Use 'start_data' if available, otherwise use 'start'
+        )
         end = section["end"]
         end_data = section.get(
             "end_data", end
-        )  # Use 'start_data' if available, otherwise use 'start'
+        )
 
         inverse = section.get(
             "inverse", False
-        )  # Use 'start_data' if available, otherwise use 'start'
+        )
 
         color = section["color"]
         label = section["label"]
@@ -574,14 +564,7 @@ def add_threshold_sections(ax, sections, data):
             data, start_data, end_data, inverse=inverse
         )
 
-        # total_observed = tp + fn
-
         desc = f"{description}\nTotal: {total}\n({(total / total_rows):.1%}) \n Default R.:\n{(target_total / total):.2%}"
-        # desc = f"{description}\nTotal: {total} \n tp:{tp} \n fn:{fn} \n fp:{fp} \n target_total:{target_total}"
-        # desc = f"{description}\nTotal: {total}\n Default Rate:\n{(55 / total):.2%}"
-        # desc=  f"{description}\nTotal: {total}\n Default Rate:\n{(total_observed / total):.2%}",
-
-        # Place label and description as annotations
         ax.text(
             (start + end) / 2,
             0.985,
@@ -675,7 +658,6 @@ def plot_threshold_metrics_v2(
                 )
 
                 # TODO: add support for multi class
-                # recall_class_1 precision_class_1 f1_class_1 fbeta_25
                 accuracy = filtered_result.metrics["recall_class_1"]
                 recall = filtered_result.metrics["recall_class_1"]
                 precision = filtered_result.metrics["precision_class_1"]
@@ -706,7 +688,7 @@ def plot_threshold_metrics_v2(
             if sample_count > 0:
                 last_filled_threshold = T
 
-            # Always include
+            # Always include these:
             metrics_results["sample_count"].append(sample_count)
             metrics_results["t_values_included"].append(T)
 
@@ -736,7 +718,6 @@ def plot_threshold_metrics_v2(
                 lines.append(_line)
             except Exception as ex:
                 raise ex
-                # raise Exception(value)
 
     ax1.set_xlabel("Threshold (T)")
     ax1.set_ylabel("Performance")
