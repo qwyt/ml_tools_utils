@@ -29,7 +29,7 @@ def run_tuning_for_config(model_name: str,
 
     end_time = time.time()
     elapsed_time = round(end_time - start_time, 1)
-    print(f"Total time:{elapsed_time}\n")
+    print(f"{model_name} Tuning, total time:{elapsed_time}\n")
 
     return tunning_result
 

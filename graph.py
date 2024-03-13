@@ -690,7 +690,7 @@ def plot_threshold_metrics_v2(
             # In case there are no predictions above a given threshold (e.g. using the betting odds model)
             raise ex
 
-    fig, ax1 = plt.subplots(figsize=(17, 7))
+    fig, ax1 = plt.subplots(figsize=(20, 7))
     lines = []
     for value in include_vars:
         if value not in default_vars and not value == "log_loss":
@@ -739,7 +739,8 @@ def plot_threshold_metrics_v2(
                 x_ticks_labels.append(x_tick)
         ax1.set_xticks(x_ticks)
         ax1.set_xticklabels(x_ticks_labels)
-        ax1.set_xlim([T_values[0], last_filled_threshold])
+        x_lims = [T_values[0], last_filled_threshold]
+        ax1.set_xlim(x_lims)
     else:
         # FIX:        # ax1.set_xscale('custom_power', factor=-0.75)
         ax1.set_xscale('log')
@@ -747,7 +748,7 @@ def plot_threshold_metrics_v2(
 
         ax1.set_xticks(tick_positions)
         ax1.set_xticklabels([str(tick) for tick in tick_positions])
-        ax1.set_xlim(0, 1)
+        # ax1.set_xlim(0, 1)
 
         # TODO: HACK: need to make ticks scale with the custom scale
         # ax1.set_xticks([.025, .05, .1, .15, .2, .3, .4, .5, .7, .9])
@@ -974,6 +975,7 @@ def roc_precision_recal_grid_plot(
             axes[i, 1].legend(loc="upper right")
 
         annotations = make_annotations(model_training_result.cv_metrics)
+        annotations += f" n={len(y_test)}"
         axes[i, 0].text(
             0.0,
             -0.1,

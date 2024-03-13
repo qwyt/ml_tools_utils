@@ -291,11 +291,11 @@ class XGBoostBaseConfig(ModelConfig):
 
     default_params: dict = field(
         default_factory=lambda: {
-            "model__gamma": 0,
-            "model__learning_rate": 0.4,
+            "model__gamma": 0.1,
+            "model__learning_rate": 0.05,
             "model__max_depth": 7,
             "model__min_child_weight": 3,
-            "model__n_estimators": 250,
+            "model__n_estimators": 150,
             "model__scale_pos_weight": 5,
         })
 
@@ -305,10 +305,8 @@ class XGBoostBaseConfig(ModelConfig):
 
     param_grid: Dict[str, List[Any]] = field(
         default_factory=lambda: {
-            # "feature_selection_k_best__k": [5, 10, 15, 20, 25, 30, "all"],
-
-            "model__learning_rate": [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1],
-            "model__max_depth": [4, 5, 6, 7, 10, 12, None],
+            "model__learning_rate": [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1],
+            "model__max_depth": [4, 5, 6, 7, 10, 12],
             "model__n_estimators": [50, 100, 150, 200, 250],
             "model__min_child_weight": [0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3],
             "model__gamma": [0, 0.05, 0.1, 0.3, 0.4],
@@ -319,7 +317,43 @@ class XGBoostBaseConfig(ModelConfig):
         default_factory=lambda: {
             "enable_categorical": True,
             "tree_method": "hist",
-            "device": "cuda"
+            "device": "cpu"
+        }
+    )
+@dataclass
+class XGBoostMulticlassBaseConfig(ModelConfig):
+    search_n_iter: int = field(default=50)
+    model: Union[BaseEstimator, List[BaseEstimator]] = XGBClassifier
+    supports_nan: bool = True
+    balancing_config: Optional[BalancingConfig] = None
+
+    default_params: dict = field(
+        default_factory=lambda: {
+            "model__gamma": 0.1,
+            "model__learning_rate": 0.05,
+            "model__max_depth": 7,
+            "model__min_child_weight": 3,
+            "model__n_estimators": 150,
+        })
+
+    preprocessing: Optional[Callable] = ml_config_preproc.preprocessing_for_xgboost(
+        use_categorical_feature=True
+    )
+
+    param_grid: Dict[str, List[Any]] = field(
+        default_factory=lambda: {
+            "model__learning_rate": [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1],
+            "model__max_depth": [4, 5, 6, 7, 10, 12],
+            "model__n_estimators": [50, 100, 150, 200, 250],
+            "model__min_child_weight": [0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3],
+            "model__gamma": [0, 0.05, 0.1, 0.3, 0.4],
+        }
+    )
+    builtin_params: Dict[str, Any] = field(
+        default_factory=lambda: {
+            "enable_categorical": True,
+            "tree_method": "hist",
+            "device": "cpu"
         }
     )
 
@@ -334,6 +368,15 @@ class XGBoostRegressorBaseConfig(ModelConfig):
     preprocessing: Optional[Callable] = ml_config_preproc.preprocessing_for_xgboost(
         use_categorical_feature=True
     )
+
+    default_params: dict = field(
+        default_factory=lambda: {
+            "model__gamma": 0.1,
+            "model__learning_rate": 0.05,
+            "model__max_depth": 7,
+            "model__min_child_weight": 3,
+            "model__n_estimators": 150,
+        })
 
     param_grid: Dict[str, List[Any]] = field(
         default_factory=lambda: {
@@ -353,11 +396,27 @@ class XGBoostRegressorBaseConfig(ModelConfig):
 #     search_n_iter: int = field(default=100)
 
 
+class CatBoostCategoricalClassifier(CatBoostClassifier):
+    def fit(self, X, y=None, **fit_params):
+        """
+        Catboost requires all the categorical features to be explicitly set in advance. Problem is that our pipeline steps
+        might change or modify the columns so we need to infer them automatically.
+        """
+        # Automatically identify categorical features if X is a DataFrame
+        if isinstance(X, pd.DataFrame):
+            cat_features = [col for col in X.columns if
+                            X[col].dtype == 'object' or pd.api.types.is_categorical_dtype(X[col])]
+            self.set_params(cat_features=cat_features)
+
+        super().fit(X, y, **fit_params)
+        return self
+
+
 @dataclass
 class CatBoostBaseConfig(ModelConfig):
     search_n_iter: int = field(default=80)
     balancing_config: Optional[BalancingConfig] = None
-    model: Union[BaseEstimator, List[BaseEstimator]] = CatBoostClassifier
+    model: Union[BaseEstimator, List[BaseEstimator]] = CatBoostCategoricalClassifier
 
     supports_nan: bool = True
     preprocessing: Optional[Callable] = ml_config_preproc.preprocessing_for_xgboost(use_categorical_feature=True)
@@ -365,9 +424,9 @@ class CatBoostBaseConfig(ModelConfig):
     default_params: dict = field(
         default_factory=lambda: {
             "model__scale_pos_weight": None,
-            "model__depth": None,
-            "model__learning_rate": None,
-            "model__iterations": None,
+            "model__depth": 6,
+            "model__learning_rate": 0.1,
+            "model__iterations": 100,
             "model__l2_leaf_reg": None,
         })
 
@@ -376,7 +435,13 @@ class CatBoostBaseConfig(ModelConfig):
             "logging_level": "Silent",
             "leaf_estimation_iterations": 1,
             "boosting_type": "Plain",
-            "thread_count": -1
+            "thread_count": -1,
+            # "cat_features": [],
+            # "task_type": "GPU",
+            # "gpu_ram_part": 0.65,
+            # "border_count": 32,
+            # "gpu_cat_features_storage": "CpuPinnedMemory",
+            # "max_ctr_complexity": 1
             # "task_type": "GPU"
             # 'task_type': "GPU",
             # 'gpu_ram_part':0.1,
@@ -387,10 +452,10 @@ class CatBoostBaseConfig(ModelConfig):
 
     param_grid: Dict[str, List[Any]] = field(
         default_factory=lambda: {
-            "model__scale_pos_weight": [5, 10, 15, 19, 25],
-            "model__depth": [6, 7, 8, 9, 10],
+            "model__scale_pos_weight": [1, 3, 5, 10],
+            "model__depth": [4, 5, 6, 7, 8],
             "model__learning_rate": [0.01, 0.03, 0.05, 0.1, 0.3],
-            "model__iterations": [100, 250, 500],
+            "model__iterations": [100, 150, 200, 250],
             "model__l2_leaf_reg": [2, 3, 5],
             # "model__border_count": [32, 64],
             # "model__class_weights": [{0: 1, 1: 19}],
@@ -571,10 +636,21 @@ class XGBoostTuneRecall(XGBoostBaseConfig):
         Callable[[np.ndarray, np.ndarray], float]
     ] = make_scorer(recall_score, pos_label=1)
 
+@dataclass
+class XGBoostF1Multiclass(XGBoostMulticlassBaseConfig):
+    search_n_iter: int = field(default=100)
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
+        default_factory=lambda: make_scorer(f1_score, average="micro"))
+
+class XGBoostMulticlassTunePRAUC(XGBoostMulticlassBaseConfig):
+    search_n_iter: int = field(default=50)
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
+        default_factory=lambda: make_scorer(average_precision_score, needs_proba=True, average="micro"))
+
 
 @dataclass
 class XGBoostTuneF1(XGBoostBaseConfig):
-    search_n_iter: int = field(default=50)
+    search_n_iter: int = field(default=100)
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
         default_factory=lambda: make_scorer(f1_score, pos_label=1))
 
@@ -595,10 +671,9 @@ class XGBoostOrdinalRegressor(XGBoostRegressorBaseConfig):
 
 @dataclass
 class XGBoostTunePRAUC(XGBoostBaseConfig):
-    search_n_iter: int = field(default=50)
+    search_n_iter: int = field(default=100)
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
         default_factory=lambda: make_scorer(average_precision_score, needs_proba=True, pos_label=1))
-
 
 @dataclass
 class XGBoostTuneCatFBeta_25(XGBoostBaseConfig):
@@ -798,7 +873,12 @@ class CMResultsDataStats:
 ModelConfigsCollection = Dict[str, ModelPipelineConfig]
 
 
-def estimate_transformer_impact(data: pd.DataFrame):
+class ImpactTarget(str, Enum):
+    Transformers = "feat_trans"
+    Model = "model"
+
+
+def estimate_transformer_impact(data: pd.DataFrame, target=ImpactTarget.Transformers):
     """
     Calculated the impact on performance of each transformer based on tuning results
     the input df must contain feature names as columns prefixed with 'feat_trans'
@@ -808,7 +888,7 @@ def estimate_transformer_impact(data: pd.DataFrame):
 
     data = data.dropna()
     # Define the feature columns (transformer options)
-    feature_cols = [col for col in data.columns if col.startswith('feat_trans')]
+    feature_cols = [col for col in data.columns if col.startswith(target.value)]
     X = data[feature_cols]
     y = data['mean_test_score']
 

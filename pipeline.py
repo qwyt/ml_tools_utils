@@ -1,7 +1,7 @@
 import importlib
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Dict, Union, Optional, Any
+from typing import Dict, Union, Optional, Any, Tuple
 
 import numpy as np
 import optuna
@@ -205,7 +205,7 @@ def get_pipeline(model_pipeline_config: ModelPipelineConfig,
 
                  enable_transformer_hyperparameter_tuning=False,
                  enable_model_hyperparameter_tuning=False,
-                 best_params=None
+                 best_params=None,
                  ):
     model_config = model_pipeline_config.model_config
     transformer_config = model_pipeline_config.transformer_config
@@ -492,6 +492,19 @@ def _get_search_results_table(grid_search: BaseSearchCV):
     return final_df
 
 
+def _get_n_jobs(model_pipeline_config):
+    """
+    When training on the GPU do not attempt to run multiple jobs at once since we'll run out of memory
+    :return:
+    """
+    n_jobs = -1
+    if "task_type" in model_pipeline_config.model_config.builtin_params:
+        if model_pipeline_config.model_config.builtin_params["task_type"] == "GPU":
+            # When training on the GPU do not attempt to run multiple jobs at once since we'll run out of memory
+            n_jobs = 1
+    return n_jobs
+
+
 def _tune_transformer_params(model_pipeline_config: ModelPipelineConfig,
                              features: pd.DataFrame,
                              labels: pd.DataFrame,
@@ -520,6 +533,7 @@ def _tune_transformer_params(model_pipeline_config: ModelPipelineConfig,
     # TODO: BEST PARAMS ARE NOT HARDCODED WHEN TUNING TRANSFORMERS, FIX
 
     best_params = model_pipeline_config.model_config.default_params
+    # best_params = _update_dynamic_builtin_params(best_params, model_pipeline_config, features)
 
     pipeline = get_pipeline(
         model_pipeline_config=model_pipeline_config,
@@ -531,6 +545,7 @@ def _tune_transformer_params(model_pipeline_config: ModelPipelineConfig,
     # Define the grid for the transformer parameters
     transformer_param_grid = model_pipeline_config.transformer_config.get_feature_search_grid()
 
+
     # Perform Grid Search to tune transformer parameters
     grid_search = GridSearchCV(pipeline,
                                scoring=tunning_target,
@@ -539,7 +554,7 @@ def _tune_transformer_params(model_pipeline_config: ModelPipelineConfig,
                                verbose=1,
                                # n_iter=5,
                                # n_jobs=1
-                               n_jobs=-1,
+                               n_jobs=_get_n_jobs(model_pipeline_config),
                                )
     # grid_search = RandomizedSearchCV(pipeline,
     #                                  scoring=tunning_target,
@@ -564,10 +579,17 @@ def _tune_transformer_params(model_pipeline_config: ModelPipelineConfig,
     return grid_search, all_cv_results
 
 
+def _update_dynamic_builtin_params(params, model_pipeline_config, features):
+    # TODO: hack, fix (cat_features list needs to be specified manually for CatBoost, but is not used by XGBoost)
+    if "CatBoost" in model_pipeline_config.model_config.model_key:
+        params = {**params, "model__cat_features": list(features.select_dtypes(include=['category']).columns)}
+    return params
+
+
 def _tune_model_params(best_transformer_params, model_pipeline_config,
                        features,
                        labels,
-                       cv=5) -> RandomizedSearchCV:
+                       cv=5) -> Tuple[RandomizedSearchCV, pd.DataFrame]:
     """
     New streamlined version of hyperparameter tuning for a given model using fixed preprocessing parameters. Note that
     this reuses the pipeline returned by '_tune_transformer_params'
@@ -587,13 +609,10 @@ def _tune_model_params(best_transformer_params, model_pipeline_config,
     # pipeline.named_steps['model'] = model_pipeline_config.model_config.model()
     tunning_target = get_tuning_target(model_pipeline_config.model_config)
 
-    # TODO: hack, fix:
-    # TODO: BEST PARAMS ARE NOT HARDCODED WHEN TUNING TRANSFORMERS, FIX
-
     best_params = {
         **best_transformer_params
     }
-
+    # best_params = _update_dynamic_builtin_params(best_params, model_pipeline_config, features)
     pipeline = get_pipeline(
         model_pipeline_config=model_pipeline_config,
         enable_model_hyperparameter_tuning=True,
@@ -607,15 +626,16 @@ def _tune_model_params(best_transformer_params, model_pipeline_config,
     # Perform Randomized Search to tune model hyperparameters
     random_search = RandomizedSearchCV(pipeline,
                                        param_distributions=model_param_distributions,
-                                       n_iter=5,
+                                       # n_iter=5,
                                        scoring=tunning_target,
-                                       # n_iter=model_pipeline_config.model_config.search_n_iter,
+                                       n_iter=model_pipeline_config.model_config.search_n_iter,
                                        cv=cv, verbose=1,
-                                       n_jobs=-1)
+                                       n_jobs=_get_n_jobs(model_pipeline_config))
     random_search.fit(features, labels)
+    all_cv_results = _get_search_results_table(random_search)
 
     print(f"Best Model Parameters: {random_search.best_params_}")
-    return random_search
+    return random_search, all_cv_results
 
 
 # def _build_tuning_result(model_search: RandomizedSearchCV,
@@ -632,6 +652,7 @@ def _build_tuning_result(
         pipeline_config: ModelPipelineConfig,
         model_key: str,
         transformer_tun_all_civ_results: pd.DataFrame,
+        hyper_param_all_cv_results: pd.DataFrame,
         features=pd.DataFrame,
         labels=pd.Series,
 ) -> TuningResult:
@@ -645,6 +666,7 @@ def _build_tuning_result(
     tune_type = TuneType.Grid
 
     predictions = model_search.best_estimator_.predict(features)
+    result_df = pd.DataFrame({'predictions': predictions, 'labels': labels})
 
     if model_type_a.value == ModelType.Regressor.value:
         predictions = model_search.best_estimator_.predict(features)
@@ -686,7 +708,8 @@ def _build_tuning_result(
         },
         best_score=float(model_search.best_score_),
         result_report=report_dict,
-        transformer_tun_all_civ_results=transformer_tun_all_civ_results
+        transformer_tun_all_civ_results=transformer_tun_all_civ_results,
+        hyper_param_all_cv_results=hyper_param_all_cv_results
     )
 
     # best_params_info=TuningResultBestParams(
@@ -754,7 +777,7 @@ def run_tunning_for_config(
                                                                                                cv=3)
     # TODO: export both this and hyperparams
     best_transformer_params = best_preproc_transformer_sarch.best_params_
-    search_results = _tune_model_params(best_transformer_params,
+    search_results, hyper_param_all_cv_results = _tune_model_params(best_transformer_params,
                                         pipeline_config,
                                         features=features,
                                         labels=labels,
@@ -767,7 +790,8 @@ def run_tunning_for_config(
         model_key=model_key,
         features=features,
         labels=labels,
-        transformer_tun_all_civ_results=transformer_tun_all_civ_results
+        transformer_tun_all_civ_results=transformer_tun_all_civ_results,
+        hyper_param_all_cv_results=hyper_param_all_cv_results
     )
 
     return tuning_results
@@ -1263,12 +1287,22 @@ def run_pipeline_config(
         return metrics
 
     model_pipeline_config = tuning_result.model_pipeline_config
-    features, labels = _get_features_labels(df)
+    features_all, labels_all = _get_features_labels(df)
+
+    # if True:  # export_test:
+    X_train, X_test, y_train, y_test = train_test_split(
+        features_all, labels_all, test_size=0.2
+    )
+
+    features = X_train
+    labels = y_train
+
     best_params = tuning_result.get_best_params()
 
     model_type = model_pipeline_config.model_config.get_type()
     res = ModelTrainingResult()
     cv = _get_cv_for_config(model_type_a=model_pipeline_config.model_config.get_type(), cv=cv)
+
 
     if cv is not None:
         cv_pipeline = get_pipeline(model_pipeline_config, best_params=best_params)
@@ -1302,12 +1336,7 @@ def run_pipeline_config(
         res.cv_metrics = cv_metrics_results
         res.cv_metrics["n_samples"] = len(features)
 
-    # if isinstance(config.model, list):
-    #     # Additional steps for ensemble models, if applicable
-    #     # This section can remain unchanged but should be adapted if regression models
-    #     # can also be part of an ensemble in your use case
-
-    # if export_prod:
+    # TODO: remove?
     if False:
         prod_pipeline = get_pipeline(model_pipeline_config)
         prod_pipeline.fit(features, labels)
@@ -1393,11 +1422,9 @@ def run_pipeline_config(
         else:
             res.feature_importances = None
 
-    # if True:  # export_test:
-    X_train, X_test, y_train, y_test = train_test_split(
-        features, labels, test_size=0.5
-    )
     test_pipeline = get_pipeline(model_pipeline_config, best_params=best_params)
+
+    print(f"Training: {model_pipeline_config.model_config.model_key} with: {best_params}")
     test_pipeline.fit(X_train, y_train)
 
     if "preprocessing" in test_pipeline.named_steps:
@@ -1704,31 +1731,3 @@ def build_cv_results_table(cv_results: Dict[str, ModelTrainingResult], VERBOSE=T
     #         by=["mse"], ascending=False
     #     )
     return metrics_df
-
-
-def extract_feature_names(pipeline, input_data):
-    """
-    Passes input_data through all transformers in the pipeline to extract feature names.
-    Does not require 'get_feature_names_out' as long as transformers operate on pandas dfs instead of ndarrays
-
-    :param pipeline: A scikit-learn Pipeline object.
-    :param input_data: Dummy input data as a pandas DataFrame.
-    :return: List of output feature names after all transformations.
-    """
-    transformed_data = input_data
-    for name, transformer in pipeline.steps[:-1]:  # Exclude the last step if it's a model
-        # print(name)
-        transformed_data = transformer.transform(transformed_data)
-
-        # If the transformer reduces or modifies the feature space, adapt accordingly
-        if hasattr(transformer, 'get_feature_names_out'):
-            # For transformers that support it, directly obtain the feature names
-            feature_names = transformer.get_feature_names_out()
-        else:
-            # Otherwise, infer feature names (if possible, depending on the output)
-            if isinstance(transformed_data, pd.DataFrame):
-                feature_names = transformed_data.columns.tolist()
-            else:
-                # If the output is a NumPy array, generate placeholder names
-                feature_names = [f'feature_{i}' for i in range(transformed_data.shape[1])]
-    return feature_names

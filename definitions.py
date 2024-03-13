@@ -156,6 +156,8 @@ class TuningResult:
     result_report: dict
     best_score: float
     transformer_tun_all_civ_results: pd.DataFrame
+    hyper_param_all_cv_results: pd.DataFrame
+
     def get_best_params(self):
         return {**self.pipeline_params, **self.model_params}
 
@@ -195,15 +197,17 @@ class TuningResult:
             }
 
             # Add classification metrics from result.result_report
-            report = result.result_report  # Assume this is the structure you provided
-            for label, metrics in report.items():
-                if label in ['accuracy']:  # Handle overall accuracy
-                    data_row[f'{label}'] = metrics
-                elif not isinstance(metrics, dict):
-                    data_row[f'{label}'] = metrics
-                else:
-                    for metric, value in metrics.items():
-                        data_row[f'{label}_{metric}'] = value
+            # TODO: metrics are currently broken, we need to get them from CV instead of doing predict after with best_model
+            # TODO: since it's using the full source df
+            # report = result.result_report  # Assume this is the structure you provided
+            # for label, metrics in report.items():
+            #     if label in ['accuracy']:  # Handle overall accuracy
+            #         data_row[f'{label}'] = metrics
+            #     elif not isinstance(metrics, dict):
+            #         data_row[f'{label}'] = metrics
+            #     else:
+            #         for metric, value in metrics.items():
+            #             data_row[f'{label}_{metric}'] = value
 
             data_for_df.append(data_row)
 

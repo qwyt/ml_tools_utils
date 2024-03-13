@@ -364,6 +364,48 @@ def format_amount(amount: float) -> str:
     else:
         return f"{amount:.2f}".rstrip('0').rstrip('.')
 
+def extract_feature_names(pipeline, input_data):
+    """
+    Passes input_data through all transformers in the pipeline to extract feature names.
+    Does not require 'get_feature_names_out' as long as transformers operate on pandas dfs instead of ndarrays
 
+    :param pipeline: A scikit-learn Pipeline object.
+    :param input_data: Dummy input data as a pandas DataFrame.
+    :return: List of output feature names after all transformations.
+    """
+    transformed_data = input_data
+    for name, transformer in pipeline.steps[:-1]:  # Exclude the last step if it's a model
+        # print(name)
+        transformed_data = transformer.transform(transformed_data)
+
+        # If the transformer reduces or modifies the feature space, adapt accordingly
+        if hasattr(transformer, 'get_feature_names_out'):
+            # For transformers that support it, directly obtain the feature names
+            feature_names = transformer.get_feature_names_out()
+        else:
+            # Otherwise, infer feature names (if possible, depending on the output)
+            if isinstance(transformed_data, pd.DataFrame):
+                feature_names = transformed_data.columns.tolist()
+            else:
+                # If the output is a NumPy array, generate placeholder names
+                feature_names = [f'feature_{i}' for i in range(transformed_data.shape[1])]
+    return feature_names
+
+def get_model_feature_importances(model_config, transformed_data):
+
+    #TODO: importances are missing
+    #TODO: need to make importances work with with feature transformers since
+    importances = model_config.test_data.feature_importances
+
+    #TODO: implement feature importances setting inot the pipeline itself instead of having to do it manually here:
+    model = model_config.test_data.test_model.named_steps['model']
+    feature_importances = model.feature_importances_
+
+    feature_names = extract_feature_names(model_config.test_data.test_model,
+                                          transformed_data.sample(10, random_state=42))
+    assert len(feature_names) == len(feature_importances), "The length of feature names and importances does not match."
+    # feature_importances = zip(feature_names, feature_importances)
+    feature_importances = pd.DataFrame({"Feature": feature_names, "Importance": feature_importances})
+    return feature_importances
 
 
