@@ -7,7 +7,11 @@ from sklearn.metrics import (
     recall_score,
     log_loss,
     confusion_matrix,
-    fbeta_score, mean_absolute_error, mean_squared_error, mean_absolute_percentage_error, r2_score,
+    fbeta_score,
+    mean_absolute_error,
+    mean_squared_error,
+    mean_absolute_percentage_error,
+    r2_score,
 )
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, FunctionTransformer
 from sklearn.decomposition import PCA
@@ -67,6 +71,7 @@ def evaluate_classifier_model(model, X_test, y_test, continuous=False):
 
     return metrics, predictions, probabilities, probabilities_match_id
 
+
 def calc_regression_metrics(predictions, y_test):
     metrics = {}
     metrics["mae"] = mean_absolute_error(y_test, predictions)
@@ -78,13 +83,19 @@ def calc_regression_metrics(predictions, y_test):
     metrics = {key: round(value, 4) for key, value in metrics.items()}
     return metrics
 
+
 def evaluate_regressor_model(model, X_test, y_test):
     predictions = model.predict(X_test)
     predictions = pd.Series(predictions, index=X_test.index)
 
     metrics = calc_regression_metrics(predictions, y_test)
 
-    return metrics, predictions, None, None  # 'None' for probabilities and probabilities_match_id as they are not applicable in regression
+    return (
+        metrics,
+        predictions,
+        None,
+        None,
+    )  # 'None' for probabilities and probabilities_match_id as they are not applicable in regression
 
 
 # def compute_class_accuracies(predictions, y_test, classes):
@@ -144,7 +155,7 @@ def evaluate_regressor_model(model, X_test, y_test):
 #     _explained_pc["cum_var"] = _explained_pc["var"].cumsum()
 
 
-def get_pca_explained(df, component_n = None):
+def get_pca_explained(df, component_n=None):
     binary_columns = df.columns[
         (df.nunique() == 2)
         & (
@@ -314,15 +325,17 @@ def filter_samples_above_threshold(model_training_result, threshold):
 def nan_summary(df):
     nan_counts = df.isna().sum()
     proportion_nan = round((df.isna().sum() / len(df)), 2) * 100
-    summary_df = pd.DataFrame({'Total NaN Values': nan_counts, 'Proportion NaN (%)': proportion_nan})
-    summary_df = summary_df[summary_df['Total NaN Values'] > 0]
+    summary_df = pd.DataFrame(
+        {"Total NaN Values": nan_counts, "Proportion NaN (%)": proportion_nan}
+    )
+    summary_df = summary_df[summary_df["Total NaN Values"] > 0]
     return summary_df
+
 
 def duplicate_summary(df):
     duplicates = df[df.duplicated(keep=False)]
     proportion_duplicates = len(duplicates) / len(df) * 100
     return proportion_duplicates, duplicates
-
 
 
 def bin_and_label(column, num_bins=4):
@@ -341,7 +354,10 @@ def bin_and_label(column, num_bins=4):
     if len(unique_edges) < 2:
         unique_edges = np.linspace(column.min(), column.max(), num_bins + 1)
 
-    labels = [f"{round(unique_edges[i], 2)} - {round(unique_edges[i + 1], 2)}" for i in range(len(unique_edges) - 1)]
+    labels = [
+        f"{round(unique_edges[i], 2)} - {round(unique_edges[i + 1], 2)}"
+        for i in range(len(unique_edges) - 1)
+    ]
 
     binned_data = pd.cut(column, bins=unique_edges, labels=labels, include_lowest=True)
     return binned_data
@@ -358,11 +374,12 @@ def format_amount(amount: float) -> str:
     - str
     """
     if amount >= 1_000_000:
-        return f"{amount / 1_000_000:.2f}".rstrip('0').rstrip('.') + "m"
+        return f"{amount / 1_000_000:.2f}".rstrip("0").rstrip(".") + "m"
     elif amount >= 1_000:
-        return f"{amount / 1_000:.2f}".rstrip('0').rstrip('.') + "k"
+        return f"{amount / 1_000:.2f}".rstrip("0").rstrip(".") + "k"
     else:
-        return f"{amount:.2f}".rstrip('0').rstrip('.')
+        return f"{amount:.2f}".rstrip("0").rstrip(".")
+
 
 def extract_feature_names(pipeline, input_data):
     """
@@ -374,12 +391,14 @@ def extract_feature_names(pipeline, input_data):
     :return: List of output feature names after all transformations.
     """
     transformed_data = input_data
-    for name, transformer in pipeline.steps[:-1]:  # Exclude the last step if it's a model
+    for name, transformer in pipeline.steps[
+        :-1
+    ]:  # Exclude the last step if it's a model
         # print(name)
         transformed_data = transformer.transform(transformed_data)
 
         # If the transformer reduces or modifies the feature space, adapt accordingly
-        if hasattr(transformer, 'get_feature_names_out'):
+        if hasattr(transformer, "get_feature_names_out"):
             # For transformers that support it, directly obtain the feature names
             feature_names = transformer.get_feature_names_out()
         else:
@@ -388,24 +407,29 @@ def extract_feature_names(pipeline, input_data):
                 feature_names = transformed_data.columns.tolist()
             else:
                 # If the output is a NumPy array, generate placeholder names
-                feature_names = [f'feature_{i}' for i in range(transformed_data.shape[1])]
+                feature_names = [
+                    f"feature_{i}" for i in range(transformed_data.shape[1])
+                ]
     return feature_names
 
-def get_model_feature_importances(model_config, transformed_data):
 
-    #TODO: importances are missing
-    #TODO: need to make importances work with with feature transformers since
+def get_model_feature_importances(model_config, transformed_data):
+    # TODO: importances are missing
+    # TODO: need to make importances work with with feature transformers since
     importances = model_config.test_data.feature_importances
 
-    #TODO: implement feature importances setting inot the pipeline itself instead of having to do it manually here:
-    model = model_config.test_data.test_model.named_steps['model']
+    # TODO: implement feature importances setting inot the pipeline itself instead of having to do it manually here:
+    model = model_config.test_data.test_model.named_steps["model"]
     feature_importances = model.feature_importances_
 
-    feature_names = extract_feature_names(model_config.test_data.test_model,
-                                          transformed_data.sample(10, random_state=42))
-    assert len(feature_names) == len(feature_importances), "The length of feature names and importances does not match."
+    feature_names = extract_feature_names(
+        model_config.test_data.test_model, transformed_data.sample(10, random_state=42)
+    )
+    assert len(feature_names) == len(
+        feature_importances
+    ), "The length of feature names and importances does not match."
     # feature_importances = zip(feature_names, feature_importances)
-    feature_importances = pd.DataFrame({"Feature": feature_names, "Importance": feature_importances})
+    feature_importances = pd.DataFrame(
+        {"Feature": feature_names, "Importance": feature_importances}
+    )
     return feature_importances
-
-

@@ -6,12 +6,16 @@ import pandas as pd
 from shared import pipeline, definitions
 
 from shared.definitions import TuningResult
-from shared.ml_config_core import ModelConfigsCollection, ModelPipelineConfig, ModelTrainingResult
+from shared.ml_config_core import (
+    ModelConfigsCollection,
+    ModelPipelineConfig,
+    ModelTrainingResult,
+)
 
 
-def run_tuning_for_config(model_name: str,
-                          pipeline_config: ModelPipelineConfig,
-                          df: pd.DataFrame) -> TuningResult:
+def run_tuning_for_config(
+    model_name: str, pipeline_config: ModelPipelineConfig, df: pd.DataFrame
+) -> TuningResult:
     start_time = time.time()
 
     print(
@@ -22,9 +26,7 @@ def run_tuning_for_config(model_name: str,
     )
 
     tunning_result = pipeline.run_tunning_for_config(
-        model_key=model_name,
-        pipeline_config=pipeline_config,
-        df=df
+        model_key=model_name, pipeline_config=pipeline_config, df=df
     )
 
     end_time = time.time()
@@ -34,14 +36,13 @@ def run_tuning_for_config(model_name: str,
     return tunning_result
 
 
-def run_tuning_for_configs_collection(model_configs: ModelConfigsCollection, df: pd.DataFrame) -> Dict[
-    str, TuningResult]:
+def run_tuning_for_configs_collection(
+    model_configs: ModelConfigsCollection, df: pd.DataFrame
+) -> Dict[str, TuningResult]:
     results = {}
     for model_key, model_config in model_configs.items():
         tune_results = run_tuning_for_config(
-            model_name=model_key,
-            pipeline_config=model_config,
-            df=df
+            model_name=model_key, pipeline_config=model_config, df=df
         )
 
         TuningResult.serialize_tuning_result(tune_results)
@@ -49,13 +50,12 @@ def run_tuning_for_configs_collection(model_configs: ModelConfigsCollection, df:
     return results
 
 
-def build_production_model_for_tuning_result(tuning_result: TuningResult, df: pd.DataFrame) -> ModelTrainingResult:
+def build_production_model_for_tuning_result(
+    tuning_result: TuningResult, df: pd.DataFrame
+) -> ModelTrainingResult:
     start_time = time.time()
 
-    result = pipeline.run_pipeline_config(
-        tuning_result,
-        df
-    )
+    result = pipeline.run_pipeline_config(tuning_result, df)
 
     end_time = time.time()
     elapsed_time = round(end_time - start_time, 1)
@@ -65,12 +65,13 @@ def build_production_model_for_tuning_result(tuning_result: TuningResult, df: pd
     return result
 
 
-def TODO_refactor_run_tuning_for_configs_collection(model_configs: ModelConfigsCollection,
-                                                    features: pd.DataFrame,
-                                                    labels: pd.Series,
-                                                    use_optuna: bool = False,
-                                                    only_tune_transformers=False
-                                                    ):
+def TODO_refactor_run_tuning_for_configs_collection(
+    model_configs: ModelConfigsCollection,
+    features: pd.DataFrame,
+    labels: pd.Series,
+    use_optuna: bool = False,
+    only_tune_transformers=False,
+):
     res = {}
     transformer_tune_results = {}
     # model_configs = get_config()
@@ -112,14 +113,15 @@ def TODO_refactor_run_tuning_for_configs_collection(model_configs: ModelConfigsC
     return None
 
 
-def TODO_REMOVE_run_cv_configs(get_config: Callable[[], ModelConfigsCollection], features, labels):
+def TODO_REMOVE_run_cv_configs(
+    get_config: Callable[[], ModelConfigsCollection], features, labels
+):
     model_task_infos = get_config()
     model_configs = {key: value[0] for key, value in model_task_infos.items()}
 
     model_configs_with_params = (
         definitions.TuningResultsAPI.get_model_configs_with_hyperparams(
-            model_configs,
-            skip_missing=True
+            model_configs, skip_missing=True
         )
     )
 

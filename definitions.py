@@ -56,7 +56,9 @@ class TuningResult_OLD:
         if not os.path.exists(TUNING_RESULTS_DIR):
             os.makedirs(TUNING_RESULTS_DIR)
 
-        file_path = os.path.join(TUNING_RESULTS_DIR, f"{self.best_params_info.model_key}.yaml")
+        file_path = os.path.join(
+            TUNING_RESULTS_DIR, f"{self.best_params_info.model_key}.yaml"
+        )
 
         if os.path.isfile(file_path):
             os.remove(file_path)
@@ -70,7 +72,12 @@ class TuningResult_OLD:
         with open(file_path, "r") as file:
             data = yaml.safe_load(file)
             best_params = TuningResultBestParams(**data)
-            return TuningResult(best_params_info=best_params, all_scores=None, best_score=0, result_report=None)
+            return TuningResult(
+                best_params_info=best_params,
+                all_scores=None,
+                best_score=0,
+                result_report=None,
+            )
 
     # TODO: remove
     # @classmethod
@@ -104,7 +111,7 @@ class TuningResult_OLD:
 
     @staticmethod
     def _generate_dataset_description(
-            features: pd.DataFrame, labels: pd.Series
+        features: pd.DataFrame, labels: pd.Series
     ) -> DatasetDescription:
         feature_types = {col: str(features[col].dtype) for col in features.columns}
         # label_distribution = labels.value_counts().to_dict()
@@ -131,11 +138,11 @@ class TuningResult_OLD:
             # Add classification metrics from result.result_report
             report = result.result_report  # Assume this is the structure you provided
             for label, metrics in report.items():
-                if label in ['accuracy']:  # Handle overall accuracy
-                    data_row[f'{label}'] = metrics
+                if label in ["accuracy"]:  # Handle overall accuracy
+                    data_row[f"{label}"] = metrics
                 else:
                     for metric, value in metrics.items():
-                        data_row[f'{label}_{metric}'] = value
+                        data_row[f"{label}_{metric}"] = value
 
             data_for_df.append(data_row)
 
@@ -163,7 +170,7 @@ class TuningResult:
 
     @staticmethod
     def _generate_dataset_description(
-            features: pd.DataFrame, labels: pd.Series
+        features: pd.DataFrame, labels: pd.Series
     ) -> DatasetDescription:
         feature_types = {col: str(features[col].dtype) for col in features.columns}
         # label_distribution = labels.value_counts().to_dict()
@@ -179,11 +186,11 @@ class TuningResult:
         if not os.path.exists(target_folder):
             os.makedirs(target_folder)
 
-        dump(res, f'{target_folder}/{res.model_key}.dill')
+        dump(res, f"{target_folder}/{res.model_key}.dill")
 
     @staticmethod
     def load_serialized_tuning_result(model_key, target_folder=TUNING_RESULTS_DIR):
-        return load(f'{target_folder}/{model_key}.dill')
+        return load(f"{target_folder}/{model_key}.dill")
 
     @staticmethod
     def convert_to_dataframe(tuning_results: Dict[str, "TuningResult"]) -> pd.DataFrame:
@@ -229,8 +236,7 @@ class TuningResultsAPI:
 
     @staticmethod
     def get_model_configs_with_hyperparams(
-            model_configs: Dict[str, ml_config_core.ModelPipelineConfig],
-            skip_missing=False
+        model_configs: Dict[str, ml_config_core.ModelPipelineConfig], skip_missing=False
     ) -> Dict[str, ml_config_core.ModelPipelineConfig]:
         tunning_results = TuningResultsAPI.load_all_results()
 

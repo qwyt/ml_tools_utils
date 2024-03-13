@@ -11,7 +11,12 @@ from catboost import CatBoostClassifier
 from imblearn.over_sampling import SMOTE, ADASYN, BorderlineSMOTE, RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 from lightgbm import LGBMClassifier
-from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin, RegressorMixin
+from sklearn.base import (
+    BaseEstimator,
+    ClassifierMixin,
+    TransformerMixin,
+    RegressorMixin,
+)
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
@@ -21,7 +26,7 @@ from sklearn.metrics import (
     average_precision_score,
     accuracy_score,
     recall_score,
-    log_loss
+    log_loss,
 )
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
@@ -47,7 +52,8 @@ def neg_log_loss(y_true, y_pred):
 
 # Update your tunning_func_target to use the neg_log_loss
 tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-    default_factory=lambda: make_scorer(neg_log_loss, needs_proba=True))
+    default_factory=lambda: make_scorer(neg_log_loss, needs_proba=True)
+)
 
 
 class BaseTransformer(BaseEstimator, TransformerMixin, ABC):
@@ -55,6 +61,7 @@ class BaseTransformer(BaseEstimator, TransformerMixin, ABC):
 
     TODO: currently only single option (defined in cls.Options enum) is supported. We need to allow a dynamic number of possible options
     """
+
     # prefix = "base"  # Default prefix, to be overridden by child classes
     transformer_name: Union[str, None] = None  # To be overridden by child classes
 
@@ -76,7 +83,9 @@ class BaseTransformer(BaseEstimator, TransformerMixin, ABC):
         #                       k.startswith(f"feat_trans_{cls.transformer_name}__")}
         for k, v in params.items():
             if k.startswith(f"feat_trans_{cls.transformer_name}__"):
-                transformer_params[k.split(f"feat_trans_{cls.transformer_name}__")[1]] = v
+                transformer_params[
+                    k.split(f"feat_trans_{cls.transformer_name}__")[1]
+                ] = v
 
         return transformer_params
 
@@ -102,7 +111,9 @@ class BaseTransformer(BaseEstimator, TransformerMixin, ABC):
         step_name = cls.get_step_name()
         prefix = f"{step_name}__"
 
-        relevant_params = {k.split(prefix)[1]: v for k, v in all_params.items() if k.startswith(prefix)}
+        relevant_params = {
+            k.split(prefix)[1]: v for k, v in all_params.items() if k.startswith(prefix)
+        }
         # Instantiate the transformer with the filtered parameters
         return (step_name, cls(**relevant_params))
 
@@ -117,7 +128,7 @@ class BaseTransformer(BaseEstimator, TransformerMixin, ABC):
 
     def set_params(self, **params):
         for param, value in params.items():
-            if param == 'option' and isinstance(value, int):
+            if param == "option" and isinstance(value, int):
                 value = self.Options(value)
             setattr(self, param, value)
         return self
@@ -132,6 +143,7 @@ class DummyTestTransformer(BaseTransformer):
     """
     Just drops all the features which have any predictive power and replace them with a random data
     """
+
     transformer_name = "dummytransformer"
 
     class Options(Enum):
@@ -143,13 +155,13 @@ class DummyTestTransformer(BaseTransformer):
 
     def transform(self, df):
         if self.option == self.Options.ON:
-            df['dummy_data'] = np.random.rand(len(df))
-            df = df[['dummy_data']].copy()
+            df["dummy_data"] = np.random.rand(len(df))
+            df = df[["dummy_data"]].copy()
 
         return df
 
     def get_target_col_names(self):
-        return ['dummy_data']
+        return ["dummy_data"]
 
 
 def fbeta_threshold_scorer(y_true, y_proba, beta=0.5, threshold=0.5, pos_label=1):
@@ -271,7 +283,9 @@ class Ensemble_Log_KNN_SVM_SMOTE(ModelConfig):
 @dataclass
 class SVC_SMOTE(ModelConfig):
     # model: Union[BaseEstimator, List[BaseEstimator]] = LogisticRegression
-    model: Union[BaseEstimator, List[BaseEstimator]] = lambda **kwargs: SVC(probability=True, **kwargs)
+    model: Union[BaseEstimator, List[BaseEstimator]] = lambda **kwargs: SVC(
+        probability=True, **kwargs
+    )
 
     supports_nan: bool = False
     search_n_iter: int = field(default=150)
@@ -297,7 +311,8 @@ class XGBoostBaseConfig(ModelConfig):
             "model__min_child_weight": 3,
             "model__n_estimators": 150,
             "model__scale_pos_weight": 5,
-        })
+        }
+    )
 
     preprocessing: Optional[Callable] = ml_config_preproc.preprocessing_for_xgboost(
         use_categorical_feature=True
@@ -305,7 +320,19 @@ class XGBoostBaseConfig(ModelConfig):
 
     param_grid: Dict[str, List[Any]] = field(
         default_factory=lambda: {
-            "model__learning_rate": [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1],
+            "model__learning_rate": [
+                0.01,
+                0.05,
+                0.1,
+                0.2,
+                0.3,
+                0.4,
+                0.5,
+                0.6,
+                0.7,
+                0.9,
+                1,
+            ],
             "model__max_depth": [4, 5, 6, 7, 10, 12],
             "model__n_estimators": [50, 100, 150, 200, 250],
             "model__min_child_weight": [0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3],
@@ -317,9 +344,11 @@ class XGBoostBaseConfig(ModelConfig):
         default_factory=lambda: {
             "enable_categorical": True,
             "tree_method": "hist",
-            "device": "cpu"
+            "device": "cpu",
         }
     )
+
+
 @dataclass
 class XGBoostMulticlassBaseConfig(ModelConfig):
     search_n_iter: int = field(default=50)
@@ -334,7 +363,8 @@ class XGBoostMulticlassBaseConfig(ModelConfig):
             "model__max_depth": 7,
             "model__min_child_weight": 3,
             "model__n_estimators": 150,
-        })
+        }
+    )
 
     preprocessing: Optional[Callable] = ml_config_preproc.preprocessing_for_xgboost(
         use_categorical_feature=True
@@ -342,7 +372,19 @@ class XGBoostMulticlassBaseConfig(ModelConfig):
 
     param_grid: Dict[str, List[Any]] = field(
         default_factory=lambda: {
-            "model__learning_rate": [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1],
+            "model__learning_rate": [
+                0.01,
+                0.05,
+                0.1,
+                0.2,
+                0.3,
+                0.4,
+                0.5,
+                0.6,
+                0.7,
+                0.9,
+                1,
+            ],
             "model__max_depth": [4, 5, 6, 7, 10, 12],
             "model__n_estimators": [50, 100, 150, 200, 250],
             "model__min_child_weight": [0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3],
@@ -353,7 +395,7 @@ class XGBoostMulticlassBaseConfig(ModelConfig):
         default_factory=lambda: {
             "enable_categorical": True,
             "tree_method": "hist",
-            "device": "cpu"
+            "device": "cpu",
         }
     )
 
@@ -376,7 +418,8 @@ class XGBoostRegressorBaseConfig(ModelConfig):
             "model__max_depth": 7,
             "model__min_child_weight": 3,
             "model__n_estimators": 150,
-        })
+        }
+    )
 
     param_grid: Dict[str, List[Any]] = field(
         default_factory=lambda: {
@@ -387,7 +430,10 @@ class XGBoostRegressorBaseConfig(ModelConfig):
         }
     )
     builtin_params: Dict[str, Any] = field(
-        default_factory=lambda: {"enable_categorical": True, "objective": "reg:squarederror"}
+        default_factory=lambda: {
+            "enable_categorical": True,
+            "objective": "reg:squarederror",
+        }
     )
 
 
@@ -404,8 +450,11 @@ class CatBoostCategoricalClassifier(CatBoostClassifier):
         """
         # Automatically identify categorical features if X is a DataFrame
         if isinstance(X, pd.DataFrame):
-            cat_features = [col for col in X.columns if
-                            X[col].dtype == 'object' or pd.api.types.is_categorical_dtype(X[col])]
+            cat_features = [
+                col
+                for col in X.columns
+                if X[col].dtype == "object" or pd.api.types.is_categorical_dtype(X[col])
+            ]
             self.set_params(cat_features=cat_features)
 
         super().fit(X, y, **fit_params)
@@ -419,7 +468,9 @@ class CatBoostBaseConfig(ModelConfig):
     model: Union[BaseEstimator, List[BaseEstimator]] = CatBoostCategoricalClassifier
 
     supports_nan: bool = True
-    preprocessing: Optional[Callable] = ml_config_preproc.preprocessing_for_xgboost(use_categorical_feature=True)
+    preprocessing: Optional[Callable] = ml_config_preproc.preprocessing_for_xgboost(
+        use_categorical_feature=True
+    )
 
     default_params: dict = field(
         default_factory=lambda: {
@@ -428,7 +479,8 @@ class CatBoostBaseConfig(ModelConfig):
             "model__learning_rate": 0.1,
             "model__iterations": 100,
             "model__l2_leaf_reg": None,
-        })
+        }
+    )
 
     builtin_params: Dict[str, Any] = field(
         default_factory=lambda: {
@@ -636,30 +688,46 @@ class XGBoostTuneRecall(XGBoostBaseConfig):
         Callable[[np.ndarray, np.ndarray], float]
     ] = make_scorer(recall_score, pos_label=1)
 
+
 @dataclass
 class XGBoostF1Multiclass(XGBoostMulticlassBaseConfig):
-    search_n_iter: int = field(default=100)
+    search_n_iter: int = field(default=70)
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-        default_factory=lambda: make_scorer(f1_score, average="micro"))
+        default_factory=lambda: make_scorer(f1_score, average="micro")
+    )
+
 
 class XGBoostMulticlassTunePRAUC(XGBoostMulticlassBaseConfig):
-    search_n_iter: int = field(default=50)
+    search_n_iter: int = field(default=70)
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-        default_factory=lambda: make_scorer(average_precision_score, needs_proba=True, average="micro"))
+        default_factory=lambda: make_scorer(
+            average_precision_score, needs_proba=True, average="micro"
+        )
+    )
+
+
+@dataclass
+class XGBoostMulticlassTuneLogLoss(XGBoostMulticlassBaseConfig):
+    search_n_iter: int = field(default=70)
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
+        default_factory=lambda: make_scorer(neg_log_loss, needs_proba=True)
+    )
 
 
 @dataclass
 class XGBoostTuneF1(XGBoostBaseConfig):
     search_n_iter: int = field(default=100)
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-        default_factory=lambda: make_scorer(f1_score, pos_label=1))
+        default_factory=lambda: make_scorer(f1_score, pos_label=1)
+    )
 
 
 @dataclass
 class XGBoostTuneLogLoss(XGBoostBaseConfig):
     search_n_iter: int = field(default=100)
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-        default_factory=lambda: make_scorer(neg_log_loss, needs_proba=True))
+        default_factory=lambda: make_scorer(neg_log_loss, needs_proba=True)
+    )
 
 
 @dataclass
@@ -673,7 +741,11 @@ class XGBoostOrdinalRegressor(XGBoostRegressorBaseConfig):
 class XGBoostTunePRAUC(XGBoostBaseConfig):
     search_n_iter: int = field(default=100)
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-        default_factory=lambda: make_scorer(average_precision_score, needs_proba=True, pos_label=1))
+        default_factory=lambda: make_scorer(
+            average_precision_score, needs_proba=True, pos_label=1
+        )
+    )
+
 
 @dataclass
 class XGBoostTuneCatFBeta_25(XGBoostBaseConfig):
@@ -838,17 +910,21 @@ class ModelTrainingResult:
     ensemble_probas: Optional[Any] = None
 
     @staticmethod
-    def serialize_model(res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR):
+    def serialize_model(
+        res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR
+    ):
         if not os.path.exists(target_folder):
             os.makedirs(target_folder)
 
-        target_path = f'{target_folder}/{model_key}.dill'
+        target_path = f"{target_folder}/{model_key}.dill"
         with open(target_path, "wb") as targt_file:
             dump(res, targt_file)
 
     @staticmethod
-    def load_serialize_model(model_key, target_folder=EXPORT_MODEL_DIR) -> "ModelTrainingResult":
-        target_path = f'{target_folder}/{model_key}.dill'
+    def load_serialize_model(
+        model_key, target_folder=EXPORT_MODEL_DIR
+    ) -> "ModelTrainingResult":
+        target_path = f"{target_folder}/{model_key}.dill"
 
         with open(target_path, "rb") as targt_file:
             return load(targt_file)
@@ -890,23 +966,27 @@ def estimate_transformer_impact(data: pd.DataFrame, target=ImpactTarget.Transfor
     # Define the feature columns (transformer options)
     feature_cols = [col for col in data.columns if col.startswith(target.value)]
     X = data[feature_cols]
-    y = data['mean_test_score']
+    y = data["mean_test_score"]
 
     # Define a pipeline with OneHotEncoder for categorical variables and LinearRegression model
-    preprocessor = ColumnTransformer(transformers=[
-        ('onehot', OneHotEncoder(drop='first'), feature_cols)],
-        remainder='passthrough')
+    preprocessor = ColumnTransformer(
+        transformers=[("onehot", OneHotEncoder(drop="first"), feature_cols)],
+        remainder="passthrough",
+    )
 
-    model = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('regressor', LinearRegression())
-    ])
+    model = Pipeline(
+        steps=[("preprocessor", preprocessor), ("regressor", LinearRegression())]
+    )
 
     # Fit the model
     model.fit(X, y)
 
     # Get the feature names after one-hot encoding
-    feature_names = model.named_steps['preprocessor'].named_transformers_['onehot'].get_feature_names_out()
+    feature_names = (
+        model.named_steps["preprocessor"]
+        .named_transformers_["onehot"]
+        .get_feature_names_out()
+    )
 
     # Extract coefficients (impacts) from the regression model
     # impacts = model.named_steps['regressor'].coef_
@@ -915,11 +995,14 @@ def estimate_transformer_impact(data: pd.DataFrame, target=ImpactTarget.Transfor
     # impact_dict = dict(zip(feature_names, impacts))
 
     # Round the impacts to 5 digits
-    impacts = np.round(model.named_steps['regressor'].coef_, 4)
+    impacts = np.round(model.named_steps["regressor"].coef_, 4)
 
     # Create a DataFrame instead of a dictionary
-    impact_df = pd.DataFrame({'Transformer_Option': feature_names,
-                              'Impact': impacts,
-                              })
+    impact_df = pd.DataFrame(
+        {
+            "Transformer_Option": feature_names,
+            "Impact": impacts,
+        }
+    )
 
     return impact_df.sort_values(by=["Impact"], ascending=False)

@@ -56,15 +56,14 @@ def convert_to_category(df):
 
 
 def preprocessing_for_xgboost(
-        use_categorical_feature=False,
-        use_target_encoding=False,
-        target=None,
-        use_numerical_cats=False,
+    use_categorical_feature=False,
+    use_target_encoding=False,
+    target=None,
+    use_numerical_cats=False,
 ):
     if use_numerical_cats:
         categorical_transformer = Pipeline([("ordinal", OrdinalEncoder())])
     elif use_categorical_feature:
-
         return FunctionTransformer(convert_to_category, validate=False)
 
     elif use_target_encoding:
@@ -110,10 +109,11 @@ type_transform_categorical_options = Union["ADSasd"]
 #     target_encoding = "target_encoding"
 #
 
+
 def preprocessing_for_xgboost_2(
-        # Params used for optimization
-        # transform_categorical: TransformCategoricalOptions
-        # ... Default Params:
+    # Params used for optimization
+    # transform_categorical: TransformCategoricalOptions
+    # ... Default Params:
 ):
     # Always set 'use_categorical_feature' for XGBoost to true
     # When we want to use alternatives like one hot just transform all categorical vars to bool etc.

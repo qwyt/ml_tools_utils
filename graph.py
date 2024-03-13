@@ -6,7 +6,15 @@ import numpy as np
 from matplotlib import pyplot as plt
 import seaborn as sns
 from scipy.optimize import minimize_scalar
-from scipy.stats import skew, kurtosis, normaltest, chi2_contingency, pointbiserialr, spearmanr, kruskal
+from scipy.stats import (
+    skew,
+    kurtosis,
+    normaltest,
+    chi2_contingency,
+    pointbiserialr,
+    spearmanr,
+    kruskal,
+)
 from sklearn.metrics import (
     confusion_matrix,
     roc_curve,
@@ -26,14 +34,19 @@ from shared.ml_config_core import CMResultsData, ModelTrainingResult
 
 from matplotlib.scale import ScaleBase, register_scale
 from matplotlib.transforms import Transform
-from matplotlib.ticker import AutoLocator, AutoMinorLocator, ScalarFormatter, FuncFormatter
+from matplotlib.ticker import (
+    AutoLocator,
+    AutoMinorLocator,
+    ScalarFormatter,
+    FuncFormatter,
+)
 
 filter_samples_above_threshold = stats_utils.filter_samples_above_threshold
 calculate_threshold_metrics = stats_utils.calculate_threshold_metrics
 
 
 class CustomPowerScale(ScaleBase):
-    name = 'custom_power'
+    name = "custom_power"
 
     def __init__(self, axis, *, factor=10, **kwargs):
         super().__init__(axis)
@@ -69,10 +82,11 @@ class CustomPowerScale(ScaleBase):
             for i, yi in np.ndenumerate(y):
                 # Apply the minimization to each element individually
                 from scipy.optimize import minimize_scalar
+
                 res = minimize_scalar(
                     lambda xi: (np.power(xi, (1 / (1 + self.factor * xi))) - yi) ** 2,
                     bounds=(0, 1),
-                    method='bounded'
+                    method="bounded",
                 )
                 x[i] = res.x
             return x
@@ -90,8 +104,11 @@ class CustomPowerScale(ScaleBase):
         def transform_non_affine(self, y):
             # Function to invert the transformation for a single value
             def invert_single_value(yi):
-                res = minimize_scalar(lambda xi: (np.power(xi, (1 / (1 + self.factor * xi))) - yi) ** 2, bounds=(0, 1),
-                                      method='bounded')
+                res = minimize_scalar(
+                    lambda xi: (np.power(xi, (1 / (1 + self.factor * xi))) - yi) ** 2,
+                    bounds=(0, 1),
+                    method="bounded",
+                )
                 return res.x
 
             # Apply the inversion function to each element if y is an array
@@ -184,15 +201,15 @@ def stacked_box_plot(proportions, total_players_by_league):
 
 
 def confusion_matrix_plot(
-        model_info,
-        title=None,
-        axis_label: Optional[str] = None,
-        labels: Optional[List[str]] = None,
-        ax=None,
-        annotations: str = None,
-        include_sample_count=False,
-        cbar=False,
-        subtitle=None,
+    model_info,
+    title=None,
+    axis_label: Optional[str] = None,
+    labels: Optional[List[str]] = None,
+    ax=None,
+    annotations: str = None,
+    include_sample_count=False,
+    cbar=False,
+    subtitle=None,
 ):
     if ax is None:
         plt.clf()
@@ -200,7 +217,7 @@ def confusion_matrix_plot(
 
     conf_matrix = confusion_matrix(model_info.y_test, model_info.predictions)
     conf_matrix_percentage = (
-            conf_matrix.astype("float") / conf_matrix.sum(axis=1)[:, np.newaxis]
+        conf_matrix.astype("float") / conf_matrix.sum(axis=1)[:, np.newaxis]
     )
 
     if labels is None:
@@ -254,13 +271,20 @@ def confusion_matrix_plot(
 
 
 def confusion_matrix_plot_v2(
-        cm_data, ax=None, title=None, subtitle=None, annotations: str = None, regressor_input: bool = False
+    cm_data,
+    ax=None,
+    title=None,
+    subtitle=None,
+    annotations: str = None,
+    regressor_input: bool = False,
 ):
     predictions = cm_data.predictions
 
     if regressor_input:
         predictions = predictions.round()
-        predictions = predictions.clip(lower=cm_data.y_test.min(), upper=cm_data.y_test.max())
+        predictions = predictions.clip(
+            lower=cm_data.y_test.min(), upper=cm_data.y_test.max()
+        )
 
     cm = confusion_matrix(cm_data.y_test, predictions)
     # cm_normalized = cm[:, np.newaxis]
@@ -424,9 +448,9 @@ def confusion_matrix_plot_v2(
 
 
 def render_feature_importances_chart(
-        feature_importances,
-        title="Feature Importance",
-        subtitle=None,
+    feature_importances,
+    title="Feature Importance",
+    subtitle=None,
 ):
     # Feature Importance Plot
 
@@ -496,7 +520,7 @@ def get_counts_for_section(data, start_threshold, end_threshold, inverse=False):
     section_data = data[
         (data["probabilities"] >= start_threshold)
         & (data["probabilities"] < end_threshold)
-        ]
+    ]
     predictions = (data["probabilities"] > start_threshold).astype(int)
 
     y_test = section_data["y_test"]
@@ -593,15 +617,15 @@ def add_threshold_sections(ax, sections, data):
 
 
 def plot_threshold_metrics_v2(
-        model_training_result: CMResultsData,
-        min_threshold,
-        max_threshold,
-        model_name=None,
-        class_pos=None,
-        include_vars: Optional[List[str]] = None,
-        show_threshold_n=False,
-        sections=None,
-        log_x=False,
+    model_training_result: CMResultsData,
+    min_threshold,
+    max_threshold,
+    model_name=None,
+    class_pos=None,
+    include_vars: Optional[List[str]] = None,
+    show_threshold_n=False,
+    sections=None,
+    log_x=False,
 ):
     """
     Plots accuracy, F1 score, and sample count against various threshold values.
@@ -743,8 +767,8 @@ def plot_threshold_metrics_v2(
         ax1.set_xlim(x_lims)
     else:
         # FIX:        # ax1.set_xscale('custom_power', factor=-0.75)
-        ax1.set_xscale('log')
-        tick_positions = [.025, .05, .1, .2, .3, .4, .5, .7, .9]
+        ax1.set_xscale("log")
+        tick_positions = [0.025, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.7, 0.9]
 
         ax1.set_xticks(tick_positions)
         ax1.set_xticklabels([str(tick) for tick in tick_positions])
@@ -818,7 +842,7 @@ def plot_threshold_metrics_v2(
 
         ax2.get_yaxis().set_major_formatter(plt.ScalarFormatter())
         for T, count in zip(
-                metrics_results["t_values_included"], metrics_results["sample_count"]
+            metrics_results["t_values_included"], metrics_results["sample_count"]
         ):
             if count < 500:
                 ax2.annotate(
@@ -870,17 +894,23 @@ def plot_threshold_metrics_v2(
 def make_annotations(cv_info: dict):
     log_loss = f"log_loss={cv_info['log_loss']:.2f}, " if "log_loss" in cv_info else ""
     f1 = f"f1={cv_info['f1_macro']:.2f}, " if "f1_macro" in cv_info else ""
-    precision = f"precision={cv_info['precision_macro']:.2f}, " if "precision_macro" in cv_info else ""
-    recall = f"recall={cv_info['recall_macro']:.2f}, " if "recall_macro" in cv_info else ""
+    precision = (
+        f"precision={cv_info['precision_macro']:.2f}, "
+        if "precision_macro" in cv_info
+        else ""
+    )
+    recall = (
+        f"recall={cv_info['recall_macro']:.2f}, " if "recall_macro" in cv_info else ""
+    )
     accuracy = f"accuracy={cv_info['accuracy']:.2f}" if "accuracy" in cv_info else ""
     return f"macro: {log_loss}{f1}{precision}{recall}{accuracy}"
 
 
 def roc_precision_recal_grid_plot(
-        # confusion_matrices,
-        model_training_results: Dict[str, ModelTrainingResult],
-        add_fbeta_25=False,
-        threshold_x_axis=True
+    # confusion_matrices,
+    model_training_results: Dict[str, ModelTrainingResult],
+    add_fbeta_25=False,
+    threshold_x_axis=True,
 ):
     n = len(model_training_results)
     columns = 2
@@ -963,9 +993,9 @@ def roc_precision_recal_grid_plot(
             )
 
             f2_5_scores = (
-                    (1 + 2.5 ** 2)
-                    * (precision * recall)
-                    / ((2.5 ** 2 * precision) + recall + np.finfo(float).eps)
+                (1 + 2.5**2)
+                * (precision * recall)
+                / ((2.5**2 * precision) + recall + np.finfo(float).eps)
             )
             f2_5_scores = np.nan_to_num(f2_5_scores)
 
@@ -1026,8 +1056,13 @@ def _group_small_internal(proportions: pd.DataFrame, absolute=False):
 #     return proportions
 
 
-def _summary_features_pie_chart(col_vals: pd.Series, source_df_no_cat: pd.DataFrame, axes, variable: str,
-                                group_small=True):
+def _summary_features_pie_chart(
+    col_vals: pd.Series,
+    source_df_no_cat: pd.DataFrame,
+    axes,
+    variable: str,
+    group_small=True,
+):
     unique_values = col_vals.unique()
 
     counts = source_df_no_cat[variable].value_counts()
@@ -1040,7 +1075,6 @@ def _summary_features_pie_chart(col_vals: pd.Series, source_df_no_cat: pd.DataFr
     axes[0].set_title("Frequency Distribution", fontsize=12)
 
     if len(count_plot_df[variable].unique()) <= 10:
-
         tick_labels = [
             clean_tick_label(v) for v in list(count_plot_df[variable].unique())
         ]
@@ -1285,9 +1319,17 @@ def render_corr_matrix_based_on_type(source_df: pd.DataFrame):
     plt.show()
 
 
-def draw_distribution_pie_charts(eda_df_ext: pd.DataFrame, split_var="gender", include_cols=None, group_small=True):
+def draw_distribution_pie_charts(
+    eda_df_ext: pd.DataFrame, split_var="gender", include_cols=None, group_small=True
+):
     if include_cols is None:
-        include_cols = ["ever_married", "work_type", "Residence_type", "smoking_status", "bmi_binned_cats"]
+        include_cols = [
+            "ever_married",
+            "work_type",
+            "Residence_type",
+            "smoking_status",
+            "bmi_binned_cats",
+        ]
 
     ii_empl_df = eda_df_ext[[split_var, *include_cols]]
 
@@ -1399,13 +1441,14 @@ def boxen_plot_by_cat(c, eda_df_ext, y_target):
         return f"{c} vs {y_target} No significant difference found (p-value = {p_value:.3f})"
 
 
-def boxen_plots_by_category(source_df: pd.DataFrame,
-                            group_col: str,
-                            target_col: str,
-                            title: Optional[str] = None,
-                            x_label: Optional[str] = None,
-x_range: Tuple = None
-                            ):
+def boxen_plots_by_category(
+    source_df: pd.DataFrame,
+    group_col: str,
+    target_col: str,
+    title: Optional[str] = None,
+    x_label: Optional[str] = None,
+    x_range: Tuple = None,
+):
     group_names = source_df[group_col].unique()
 
     target_heigh = max(10, len(group_names) + 1)
@@ -1418,7 +1461,6 @@ x_range: Tuple = None
         .sort_values(ascending=False)
         .index.tolist()
     )
-
 
     if x_label:
         plt.xlabel(x_label)  # Change X-axis label
@@ -1438,12 +1480,12 @@ x_range: Tuple = None
 
     if x_range:
         plt.xlim(x_range[0], x_range[1])
-    ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: stats_utils.format_amount(x)))
+    ax.xaxis.set_major_formatter(
+        FuncFormatter(lambda x, _: stats_utils.format_amount(x))
+    )
 
     for i, league in enumerate(group_names_sorted):
-        median = source_df[source_df[group_col] == league][
-            target_col
-        ].median()
+        median = source_df[source_df[group_col] == league][target_col].median()
         if i == 0:
             ax.text(
                 median,
