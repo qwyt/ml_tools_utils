@@ -111,9 +111,6 @@ type_transform_categorical_options = Union["ADSasd"]
 
 
 def preprocessing_for_xgboost_2(
-    # Params used for optimization
-    # transform_categorical: TransformCategoricalOptions
-    # ... Default Params:
 ):
     # Always set 'use_categorical_feature' for XGBoost to true
     # When we want to use alternatives like one hot just transform all categorical vars to bool etc.
@@ -123,47 +120,6 @@ def preprocessing_for_xgboost_2(
             df[col] = df[col].astype("category")
         return df
 
-    # if
-    # cat_transformer =  FunctionTransformer(convert_to_category, validate=False)
-    #
-    # elif use_target_encoding:
-    #     if target is None:
-    #         raise ValueError("Target variable must be provided for target encoding")
-    #
-    #     categorical_transformer = Pipeline(
-    #         [
-    #             (
-    #                 "target_encoder",
-    #                 TargetEncoder(
-    #                     cols=make_column_selector(dtype_include=["object", "category"]),
-    #                     y=target,
-    #                 ),
-    #             )
-    #         ]
-    #     )
-    #
-    # else:
-    #     categorical_transformer = Pipeline(
-    #         [("onehot", OneHotEncoder(handle_unknown="error", drop="if_binary"))]
-    #     )
-
-    # if transform_categorical == TransformCategoricalOptions.use_categorical_feature:
-    #     cat_transformer = FunctionTransformer(convert_to_category, validate=False)
-    # elif transform_categorical == TransformCategoricalOptions.target_encoding:
-    #     {TODO CHAT GPT}
-    #
-    #
-    # preprocessor = ColumnTransformer(
-    #     [
-    #         (
-    #             "cat",
-    #             categorical_transformer,
-    #             make_column_selector(dtype_include=["object", "category"]),
-    #         ),
-    #     ]
-    # )
-    #
-    # return preprocessor
     raise NotImplementedError
 
 

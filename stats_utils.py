@@ -428,7 +428,6 @@ def get_model_feature_importances(model_config, transformed_data):
     assert len(feature_names) == len(
         feature_importances
     ), "The length of feature names and importances does not match."
-    # feature_importances = zip(feature_names, feature_importances)
     feature_importances = pd.DataFrame(
         {"Feature": feature_names, "Importance": feature_importances}
     )

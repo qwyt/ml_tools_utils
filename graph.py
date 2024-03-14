@@ -130,7 +130,7 @@ def render_pca_component_plot(_explained_pc, title=None):
         data=_explained_pc,
         color="skyblue",
         label="Individual Variance",
-        legend=False
+        legend=False,
     )
     ax_b.set_ylim([0, 1.1])
     barplot.set_ylim([0, 1])
@@ -538,17 +538,11 @@ def add_threshold_sections(ax, sections, data):
     total_rows = len(data["probabilities"])
     for section in sections:
         start = section["start"]
-        start_data = section.get(
-            "start_data", start
-        )
+        start_data = section.get("start_data", start)
         end = section["end"]
-        end_data = section.get(
-            "end_data", end
-        )
+        end_data = section.get("end_data", end)
 
-        inverse = section.get(
-            "inverse", False
-        )
+        inverse = section.get("inverse", False)
 
         color = section["color"]
         label = section["label"]
@@ -1026,17 +1020,6 @@ def _group_small_internal(proportions: pd.DataFrame, absolute=False):
     return proportions
 
 
-# def _group_small_internal_absolute(proportions: pd.DataFrame):
-#     threshold = 0.07 * proportions.sum()
-#     small_proportions = proportions[proportions < threshold]
-#
-#     other_proportion = small_proportions.sum()
-#     proportions = proportions[proportions >= threshold].copy()
-#     if other_proportion > 0:  # Check if there are small values to group
-#         proportions["Others"] = other_proportion  # Add the grouped "Others" category
-#     return proportions
-
-
 def _summary_features_pie_chart(
     col_vals: pd.Series,
     source_df_no_cat: pd.DataFrame,
@@ -1079,12 +1062,6 @@ def _summary_features_pie_chart(
     proportions = col_vals.value_counts(normalize=True)
     if group_small:
         proportions = _group_small_internal(proportions)
-        # threshold = 0.07  # Set the threshold for grouping small values (10%)
-        # small_proportions = proportions[proportions < threshold]
-        # other_proportion = small_proportions.sum()
-        # proportions = proportions[proportions >= threshold]
-        # if other_proportion > 0:  # Check if there are small values to group
-        #     proportions["Others"] = other_proportion  # Add the grouped "Others" category
 
     explode = [0.02] * len(proportions)
     wedges, _ = axes[1].pie(
@@ -1415,10 +1392,6 @@ def boxen_plot_by_cat(c, eda_df_ext, y_target):
         plt.xlabel("")
         plt.show()
     else:
-        # if VERBOSE:
-        #     print(
-        #         f"{c} vs {y_target} No significant difference found (p-value = {p_value:.3f})"
-        #     )
         return f"{c} vs {y_target} No significant difference found (p-value = {p_value:.3f})"
 
 

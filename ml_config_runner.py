@@ -74,7 +74,6 @@ def TODO_refactor_run_tuning_for_configs_collection(
 ):
     res = {}
     transformer_tune_results = {}
-    # model_configs = get_config()
     include_models = [k for k in model_configs.keys() if model_configs[k][1]]
 
     for model_name in include_models:
