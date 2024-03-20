@@ -505,7 +505,9 @@ def _build_tuning_result(
         model_key=model_key,
         model_pipeline_config=pipeline_config,
         model_params={**clean_params(model_search.best_params_)},
-        pipeline_params={**clean_params(pipeline_search.best_params_)},
+        pipeline_params={**clean_params(pipeline_search.best_params_)}
+        if pipeline_search
+        else {},
         dataset_description=dataset_description,
         all_scores={
             k: v.tolist() if isinstance(v, np.ndarray) else v
@@ -531,21 +533,57 @@ def _get_features_labels(df):
     return df, labels
 
 
+def run_fixed_transformers(fixed_preprocessors: list, df: pd.DataFrame):
+    if len(fixed_preprocessors) > 0:
+        for t_def in fixed_preprocessors:
+            t = t_def()
+            df = t.transform(df)
+            print(1)
+    return df
+
+
 def run_tunning_for_config(
     model_key: str,
     pipeline_config: ModelPipelineConfig,
     df: pd.DataFrame,
     cv=None,
 ) -> TuningResult:
+    # Run any fixed preprocessors that are not used for tuning
+    # if len(pipeline_config.transformer_config.fixed_preprocessors) > 0:
+    #     for t_def in pipeline_config.transformer_config.fixed_preprocessors:
+    #         t = t_def()
+    #         df = t.transform(df)
+    if pipeline_config.transformer_config.fixed_preprocessors:
+        df = run_fixed_transformers(
+            pipeline_config.transformer_config.fixed_preprocessors, df
+        )
     # The target column is prefixed with target__, df should only have one
     features, labels = _get_features_labels(df)
+    tuning_grid = pipeline_config.transformer_config.get_feature_search_grid()
 
-    (
-        best_preproc_transformer_sarch,
-        transformer_tun_all_civ_results,
-    ) = _tune_transformer_params(pipeline_config, features, labels, cv=5)
-    # TODO: export both this and hyperparams
-    best_transformer_params = best_preproc_transformer_sarch.best_params_
+    # Are there any combinations of transformers
+    skip_feature_tuning = all(
+        [True if len(v) == 1 else False for v in tuning_grid.values()]
+    )
+
+    # if len(tuning_grid) > 0:
+    # if skip_feature_tuning:
+    #     best_transformer_params = {k: v[0] for k, v in tuning_grid.items()}
+    #     best_preproc_transformer_sarch = None
+    #     print(f"Skip transformer tuning, only 1 pipeline: {best_transformer_params} ")
+    if len(tuning_grid) > 0:
+        (
+            best_preproc_transformer_sarch,
+            transformer_tun_all_civ_results,
+        ) = _tune_transformer_params(pipeline_config, features, labels, cv=5)
+
+        # TODO: export both this and hyperparams
+        best_transformer_params = best_preproc_transformer_sarch.best_params_
+    else:
+        best_preproc_transformer_sarch = None
+        transformer_tun_all_civ_results = None
+        best_transformer_params = {}
+
     search_results, hyper_param_all_cv_results = _tune_model_params(
         best_transformer_params, pipeline_config, features=features, labels=labels, cv=5
     )
@@ -610,6 +648,13 @@ def calculate_classification_metrics(
     return metrics
 
 
+def get_deterministic_train_test_split(features_all, labels_all):
+    X_train, X_test, y_train, y_test = train_test_split(
+        features_all, labels_all, test_size=0.2, random_state=42
+    )
+    return X_train, X_test, y_train, y_test
+
+
 def run_pipeline_config(
     tuning_result: TuningResult,
     df: pd.DataFrame,
@@ -634,6 +679,14 @@ def run_pipeline_config(
     Returns:
     - ModelTrainingResult: Object containing the results of the training process.
     """
+    if hasattr(
+        tuning_result.model_pipeline_config.transformer_config, "fixed_preprocessors"
+    ):
+        if tuning_result.model_pipeline_config.transformer_config.fixed_preprocessors:
+            df = run_fixed_transformers(
+                tuning_result.model_pipeline_config.transformer_config.fixed_preprocessors,
+                df,
+            )
 
     def calculate_regression_metrics(labels: pd.Series, predictions: pd.Series) -> Dict:
         """Calculate regression metrics."""
@@ -665,9 +718,12 @@ def run_pipeline_config(
     model_pipeline_config = tuning_result.model_pipeline_config
     features_all, labels_all = _get_features_labels(df)
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        features_all, labels_all, test_size=0.2
+    X_train, X_test, y_train, y_test = get_deterministic_train_test_split(
+        features_all, labels_all
     )
+    # X_train, X_test, y_train, y_test = train_test_split(
+    #     features_all, labels_all, test_size=0.2, random_stateint=42
+    # )
 
     features = X_train
     labels = y_train

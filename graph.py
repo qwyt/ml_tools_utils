@@ -1,5 +1,7 @@
 from typing import Optional, List, Dict, Tuple
 
+import shap
+
 import pandas
 import pandas as pd
 import numpy as np
@@ -747,6 +749,9 @@ def plot_threshold_metrics_v2(
 
         ax1.set_xticks(tick_positions)
         ax1.set_xticklabels([str(tick) for tick in tick_positions])
+        if sections:
+            ax1.set_xlim([0, sections[-1]["end"]])
+
         # ax1.set_xlim(0, 1)
 
         # TODO: HACK: need to make ticks scale with the custom scale
@@ -910,7 +915,7 @@ def roc_precision_recal_grid_plot(
         # ROC Curve for Class=1
         fpr, tpr, _ = roc_curve(y_test, probabilities.iloc[:, 1], pos_label=1)
         roc_auc = auc(fpr, tpr)
-        axes[i, 0].plot(fpr, tpr, label=f"ROC (AUC = {roc_auc:.2f})")
+        axes[i, 0].plot(fpr, tpr, label=f"ROC (AUC = {roc_auc:.4f})")
         axes[i, 0].plot([0, 1], [0, 1], "k--")
         axes[i, 0].set_xlim([0.0, 1.0])
         axes[i, 0].set_xticks(list(np.arange(0, 1, 0.1)))
@@ -948,6 +953,18 @@ def roc_precision_recal_grid_plot(
             )
             axes[i, 1].legend(loc="best")
 
+            pr_auc_annotations = f"PR-AUC={pr_auc:.3f}"
+            axes[i, 1].text(
+                0.0,
+                -0.11,
+                pr_auc_annotations + "\n",
+                ha="left",
+                va="center",
+                fontsize=12,
+                transform=axes[i, 1].transAxes,
+            )
+
+
         else:
             # Precision-Recall Curve for Class=1
             precision, recall, _ = precision_recall_curve(
@@ -983,7 +1000,7 @@ def roc_precision_recal_grid_plot(
         annotations += f" n={len(y_test)}"
         axes[i, 0].text(
             0.0,
-            -0.1,
+            -0.11,
             annotations + "\n",
             ha="left",
             va="center",
@@ -1468,3 +1485,22 @@ def boxen_plots_by_category(
 
     if title:
         plt.title(title, pad=25)
+
+def render_shap_plot(shap_values, X_test, model_title="SHAP Plot"):
+
+
+    shap_values = shap_values[:, :-1]
+    plt.figure(figsize=(12, 8))
+    ax = plt.gca()
+
+    shap.summary_plot(
+        shap_values,
+        features=X_test,
+        feature_names=X_test.columns,
+        plot_size=None,  # Disable shap's internal plot sizing
+        show=False,  # Prevent shap from showing the plot automatically
+        # ax=ax  # Pass the matplotlib axis object
+    )
+
+    plt.title(model_title)
+    plt.show()

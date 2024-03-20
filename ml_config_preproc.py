@@ -110,8 +110,7 @@ type_transform_categorical_options = Union["ADSasd"]
 #
 
 
-def preprocessing_for_xgboost_2(
-):
+def preprocessing_for_xgboost_2():
     # Always set 'use_categorical_feature' for XGBoost to true
     # When we want to use alternatives like one hot just transform all categorical vars to bool etc.
 

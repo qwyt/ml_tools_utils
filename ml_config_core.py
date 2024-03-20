@@ -716,7 +716,7 @@ class XGBoostMulticlassTuneLogLoss(XGBoostMulticlassBaseConfig):
 
 @dataclass
 class XGBoostTuneF1(XGBoostBaseConfig):
-    search_n_iter: int = field(default=100)
+    search_n_iter: int = field(default=70)
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
         default_factory=lambda: make_scorer(f1_score, pos_label=1)
     )
@@ -739,7 +739,7 @@ class XGBoostOrdinalRegressor(XGBoostRegressorBaseConfig):
 
 @dataclass
 class XGBoostTunePRAUC(XGBoostBaseConfig):
-    search_n_iter: int = field(default=100)
+    search_n_iter: int = field(default=70)
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
         default_factory=lambda: make_scorer(
             average_precision_score, needs_proba=True, pos_label=1
@@ -873,6 +873,7 @@ class CMResultsData:
 @dataclass
 class PipelineTransformerConfig:
     transformers: List[Type[BaseTransformer]] = field(default_factory=list)
+    fixed_preprocessors: List[Type[BaseTransformer]] = field(default_factory=list)
 
     def get_feature_search_grid(self) -> Dict[str, List]:
         feature_search_grid = []
