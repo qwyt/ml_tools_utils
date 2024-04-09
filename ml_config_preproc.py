@@ -1,6 +1,7 @@
 # from enum import StrEnum
 from typing import Union
 
+import pandas as pd
 from sklearn.compose import make_column_selector, ColumnTransformer
 from sklearn.decomposition import PCA
 from sklearn.impute import SimpleImputer
@@ -10,7 +11,7 @@ from sklearn.preprocessing import (
     StandardScaler,
     OrdinalEncoder,
     FunctionTransformer,
-    TargetEncoder,
+    TargetEncoder, LabelEncoder,
 )
 
 
@@ -55,11 +56,37 @@ def convert_to_category(df):
     return df
 
 
+def convert_to_category_label_encoder(df):
+    for col in df.select_dtypes(include=["object"]):
+        df[col] = df[col].astype("category")
+
+    # Identify categorical columns
+    categorical_columns = [col for col in df.columns if
+                           df[col].dtype == 'object' or df[col].dtype == 'category']
+
+    # Initialize LabelEncoder
+    label_encoder = LabelEncoder()
+
+    # Encode each categorical column
+    for col in categorical_columns:
+        # Combine training and test column values
+        # combined = pd.concat([features[col], test_features[col]], axis=0)
+
+        # Fit LabelEncoder on combined data
+        label_encoder.fit(df[col])
+
+        # Transform both training and testing data
+        df[col] = label_encoder.transform(df[col])
+        # test_features[col] = label_encoder.transform(test_features[col])
+
+    return df
+
+
 def preprocessing_for_xgboost(
-    use_categorical_feature=False,
-    use_target_encoding=False,
-    target=None,
-    use_numerical_cats=False,
+        use_categorical_feature=False,
+        use_target_encoding=False,
+        target=None,
+        use_numerical_cats=False,
 ):
     if use_numerical_cats:
         categorical_transformer = Pipeline([("ordinal", OrdinalEncoder())])
@@ -174,3 +201,44 @@ def preprocessing_for_svm(enable_pca=False, pca_components=None):
     preprocessor = ColumnTransformer(transformers)
 
     return preprocessor
+
+
+def preprocessing_for_lgbm_OLD():
+    # def categorical_label_encoder(df):
+    #     label_encoder = LabelEncoder()
+    #     categorical_columns = [col for col in df.columns if df[col].dtype == 'object' or df[col].dtype == 'category']
+    #
+    #     for col in categorical_columns:
+    #         # Fit and transform the data to itself, essentially training and transforming on the same data
+    #         df[col] = label_encoder.fit_transform(df[col])
+    #
+    #     return df
+
+    categorical_transformer = Pipeline(
+        [("onehot", OrdinalEncoder().set_output(transform="pandas"))]
+    )
+
+    # categorical_transformer = Pipeline([
+    #     ('encoder', categorical_label_encoder)
+    # ])
+
+    preprocessor = ColumnTransformer(
+        [
+            (
+                "cat",
+                categorical_transformer,
+                make_column_selector(dtype_include=["object", "category"]),
+            ),
+        ]
+    )
+
+    return preprocessor
+
+
+def preprocessing_for_lgbm(
+):
+    categorical_transformer = Pipeline([("ordinal", OrdinalEncoder())])
+
+    return FunctionTransformer(convert_to_category, validate=False)
+
+    # return preprocessor

@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Union, List, Dict, Optional, Any, Callable, Type, Tuple
 
 import numpy as np
+import optuna
 import pandas as pd
 import sklearn.pipeline
 from catboost import CatBoostClassifier
@@ -26,8 +27,9 @@ from sklearn.metrics import (
     average_precision_score,
     accuracy_score,
     recall_score,
-    log_loss,
+    log_loss, roc_auc_score,
 )
+from sklearn.model_selection import StratifiedKFold
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from xgboost import XGBClassifier, XGBRegressor
@@ -255,6 +257,9 @@ class ModelConfig:
 
     def optuna_objective(trial, X, y, cv):
         raise NotImplementedError()
+
+    def fit_model(self, model: BaseEstimator, X_train: np.ndarray, y_train: np.ndarray, **fit_params: Any):
+        return model.fit(X_train, y_train)
 
 
 @dataclass
@@ -584,39 +589,187 @@ class RandomForestBaseConfig(ModelConfig):
 #             # Add other LightGBM-specific parameters here
 #         },
 #     )
+class CustomLGBMClassifier(LGBMClassifier):
+    def fit(self,
+            train_features,
+            train_labels,
+            categorical_feature=None,
+            eval_set: Optional[List] = None,
+            eval_names=('valid', 'train'),
+            **kwargs):
+        # Example: Print a message before fitting the model
+        print("Custom fit method is called.")
+
+        # Now call the original `fit` method
+        # You can add custom logic here before or after calling the super method
+        # return super().fit(X, y, **kwargs)
+
+        kwargs.setdefault('eval_metric', "auc")
+
+        super().fit(train_features, train_labels,
+                    # eval_metric='auc',
+                    # eval_set=[(valid_features, valid_labels), (train_features, train_labels)],
+                    eval_set=eval_set,
+                    # eval_names=['valid', 'train'],
+                    eval_names=eval_names,
+                    categorical_feature=categorical_feature,
+
+                    **kwargs)
+
+        # If you need to modify or access attributes after fitting, you can do so here
+        # For example: print("Model fitting is complete.")
+
+
+class Range:
+    def __init__(self, start, end, step=None):
+        self.start = start
+        self.end = end
+        self.step = round(start + end / 10, 1) if step is None else step
+
+    @property
+    def value_type(self):
+        if isinstance(self.start, int):
+            return int
+        if isinstance(self.start, float):
+            return float
+
+        raise ValueError(self.start)
+
+    def __repr__(self):
+        return f"Range({self.start}, {self.end}, {self.step}, {self.value_type.__name__})"
 
 
 @dataclass
 class LGBMBaseConfig(ModelConfig):
-    search_n_iter: int = field(default=20)
+    # model: Union[BaseEstimator, List[BaseEstimator]] = CustomLGBMClassifier
     model: Union[BaseEstimator, List[BaseEstimator]] = LGBMClassifier
 
+    search_n_iter: int = field(default=10)
     supports_nan: bool = True
-    preprocessing: Optional[Callable] = ml_config_preproc.preprocessing_for_xgboost()
+    balancing_config: Optional[BalancingConfig] = None
 
-    builtin_params: Dict[str, Any] = field(default_factory=lambda: {"verbose": -1})
-
-    param_grid: Dict[str, List[Any]] = field(
+    default_params: dict = field(
         default_factory=lambda: {
-            "model__learning_rate": [0.05, 0.1, 0.2],
-            "model__max_depth": [6, 8, -1],
-            "model__n_estimators": [100],
-            "model__num_leaves": [31, 62],
-            "model__scale_pos_weight": [5, 10, 20, 30],
+            "model__gamma": 0.1,
+            "model__learning_rate": 0.05,
+            "model__max_depth": 7,
+            "model__min_child_weight": 3,
+            "model__n_estimators": 150,
+            "model__scale_pos_weight": 5,
         }
+    )
+
+    preprocessing: Optional[Callable] = ml_config_preproc.preprocessing_for_lgbm()
+
+    param_grid: Dict[str, Any] = field(default_factory=lambda:
+    {
+
+        # "model__class_weight": ['balanced', None],  # Categorical
+        # "model__objective": ['binary'],  # Categorical with a single option
+        # "model__boosting_type": ['gbdt', 'rf', 'dart'],  # Categorical with a single option
+        "model__n_estimators": Range(50, 1000, step=50),  # Numeric range, automatically inferred as integer
+        "model__learning_rate": Range(0.01, 0.3, 0.01),  # Numeric range, automatically inferred as float
+        "model__max_depth": Range(3, 10, 1),  # Numeric range, automatically inferred as float
+        "model__num_leaves": Range(8, 256, 8),  # Numeric range, automatically inferred as float
+        "model__min_gain_to_split": Range(0.5, 15.0, 0.5),  # Numeric range, automatically inferred as float
+        "model__min_data_in_leaf": Range(200, 3000, 100),  # Numeric range, automatically inferred as float
+        "model__lambda_l1": Range(0, 100, step=5),  # Numeric range, automatically inferred as float
+        "model__lambda_l2": Range(0, 100, step=5),  # Numeric range, automatically inferred as float
+        "model__bagging_fraction": Range(0.2, 1.0, step=0.1),  # Numeric range, automatically inferred as float
+        "model__feature_fraction": Range(0.2, 1.0, 0.1),  # Numeric range, automatically inferred as float
+        "model__max_bin": Range(50, 500, 25),  # Numeric range, automatically inferred as float
+        # Add other parameters as needed
+    }
+
+                                       )
+    builtin_params: Dict[str, Any] = field(
+        default_factory=lambda: {
+            # "model__boosting_type": "dart",  # ,['gbdt', 'rf', 'dart']
+            # "model__boosting_type": "rf",  # ,['gbdt', 'rf', 'dart']
+            "model__objective": 'binary',
+            "model__class_weight": 'balanced',
+            "model__random_state": 42,
+            "model__verbose": -1,
+            "model__n_jobs": -1,
+            "model__n_iter_no_change": 10,
+            "early_stopping_rounds": 50,
+
+        }
+    )
+
+    # def fit_model(self, model: BaseEstimator, X_train: np.ndarray, y_train: np.ndarray, **fit_params: Any):
+    #     """
+    #     Wrapper for fit interface, implements model specific parameters
+    #     :param model:
+    #     :param X_train:
+    #     :param y_train:
+    #     :param fit_params:
+    #     :return:
+    #     """
+    #     model.fit(X_train, y_train,
+    #               eval_set=[(X_valid, y_valid)],
+    #             eval_names=['valid'], categorical_feature=cat_indices,
+    #             )
+
+
+# class LGBMTuneF1(LGBMBaseConfig):
+#     search_n_iter: int = field(default=10)
+#     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
+#         default_factory=lambda: make_scorer(f1_score, pos_label=1)
+#     )
+
+# class LGBMTuneAUC(LGBMBaseConfig):
+#     search_n_iter: int = field(default=10)
+#     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
+#         default_factory=lambda: make_scorer(roc_auc_score)
+#     )
+#
+
+
+@dataclass
+class LGBMTuneAUC(LGBMBaseConfig):
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
+        default_factory=lambda: make_scorer(roc_auc_score, needs_proba=True)
     )
 
 
 @dataclass
-class LGBMForestBaseConfigTuneF1(LGBMBaseConfig):
-    tunning_func_target = (make_scorer(f1_score, pos_label=1),)
+class LGBMTuneF1(LGBMBaseConfig):
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
+        default_factory=lambda: make_scorer(f1_score)
+    )
 
 
 @dataclass
-class LGBMForestBaseConfigTuneFBeta_25(LGBMBaseConfig):
-    tunning_func_target: Optional[
-        Callable[[np.ndarray, np.ndarray], float]
-    ] = make_scorer(fbeta_score, beta=2.5, pos_label=1)
+class LGBMTunePRAUC(LGBMBaseConfig):
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
+        default_factory=lambda: make_scorer(average_precision_score, needs_proba=True)
+    )
+
+
+@dataclass
+class LGBMTuneLogLoss(LGBMBaseConfig):
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
+        default_factory=lambda: make_scorer(log_loss, needs_proba=True, greater_is_better=False)
+    )
+
+
+def weighted_logloss_scorer(estimator, X, y_true):
+    y_proba = estimator.predict_proba(X)
+    logloss = log_loss(y_true, y_proba)
+    y_pred = np.argmax(y_proba, axis=1)
+    f1 = f1_score(y_true, y_pred)
+    return -0.7 * logloss + 0.3 * f1  # Negate logloss to minimize it
+
+
+@dataclass
+class LGBMTuneWeightedLogLossF1(LGBMBaseConfig):
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
+        default_factory=lambda: weighted_logloss_scorer)
+
+    # tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
+    #     default_factory=lambda: make_scorer(weighted_logloss_scorer, needs_proba=True)
+    # )
 
 
 # @dataclass CatBoostBaseConfigTuneF1 CatBoostBaseConfigTuneFBeta_15 XGBoostTuneF1 CatBoostBaseConfigTuneFBeta_40 CatBoostBaseConfigTuneFBeta_20 CatBoostBaseConfigTuneFBeta_25 XGBoostTuneCatFBeta_25 XGBoostTuneCatF1FBeta_175
@@ -716,7 +869,7 @@ class XGBoostMulticlassTuneLogLoss(XGBoostMulticlassBaseConfig):
 
 @dataclass
 class XGBoostTuneF1(XGBoostBaseConfig):
-    search_n_iter: int = field(default=70)
+    search_n_iter: int = field(default=10)
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
         default_factory=lambda: make_scorer(f1_score, pos_label=1)
     )
@@ -739,7 +892,7 @@ class XGBoostOrdinalRegressor(XGBoostRegressorBaseConfig):
 
 @dataclass
 class XGBoostTunePRAUC(XGBoostBaseConfig):
-    search_n_iter: int = field(default=70)
+    search_n_iter: int = field(default=10)
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
         default_factory=lambda: make_scorer(
             average_precision_score, needs_proba=True, pos_label=1
@@ -843,7 +996,7 @@ class XGBoostCatF1UndersampleAuto(XGBoostBaseConfig):
 
 
 @dataclass
-class TestTrainData:
+class OLD_TestTrainData:
     test_model: sklearn.pipeline.Pipeline
 
     x_test_transformed: np.array
@@ -856,6 +1009,17 @@ class TestTrainData:
     metrics: dict
     class_accuracies: dict
     feature_importances: Optional[pd.DataFrame] = None
+
+
+@dataclass
+class TestTrainData:
+    test_model: Pipeline
+    y_test: pd.Series
+    x_test: pd.DataFrame
+    predictions: pd.Series
+    probabilities: pd.Series
+    metrics: Dict[str, Any]
+    metrics_2: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -894,14 +1058,21 @@ class PipelineTransformerConfig:
 @dataclass
 class ModelPipelineConfig:
     model_config: ModelConfig
+    data_loader_params: Dict[str, Any]
     transformer_config: Optional[PipelineTransformerConfig] = None
+
+    def load_data(self, loader_function: Callable[..., pd.DataFrame]) -> pd.DataFrame:
+        """
+        Dynamically loads data using the provided loader function and parameters stored in the instance.
+        """
+        return loader_function(**self.data_loader_params)
 
     def to_yaml(self):
         pass
 
 
 @dataclass
-class ModelTrainingResult:
+class OLD_ModelTrainingResult:
     # model: BaseModel
     cv_metrics: Optional[dict] = None
     prod_model: Optional[sklearn.pipeline.Pipeline] = None
@@ -912,7 +1083,7 @@ class ModelTrainingResult:
 
     @staticmethod
     def serialize_model(
-        res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR
+            res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR
     ):
         if not os.path.exists(target_folder):
             os.makedirs(target_folder)
@@ -923,7 +1094,35 @@ class ModelTrainingResult:
 
     @staticmethod
     def load_serialize_model(
-        model_key, target_folder=EXPORT_MODEL_DIR
+            model_key, target_folder=EXPORT_MODEL_DIR
+    ) -> "ModelTrainingResult":
+        target_path = f"{target_folder}/{model_key}.dill"
+
+        with open(target_path, "rb") as targt_file:
+            return load(targt_file)
+
+
+@dataclass
+class ModelTrainingResult:
+    cv_metrics: Optional[Dict[str, float]] = None
+    prod_model: Optional[Pipeline] = None
+    test_data: Optional[TestTrainData] = None
+    cm_data: Optional[CMResultsData] = None
+
+    @staticmethod
+    def serialize_model(
+            res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR
+    ):
+        if not os.path.exists(target_folder):
+            os.makedirs(target_folder)
+
+        target_path = f"{target_folder}/{model_key}.dill"
+        with open(target_path, "wb") as targt_file:
+            dump(res, targt_file)
+
+    @staticmethod
+    def load_serialize_model(
+            model_key, target_folder=EXPORT_MODEL_DIR
     ) -> "ModelTrainingResult":
         target_path = f"{target_folder}/{model_key}.dill"
 

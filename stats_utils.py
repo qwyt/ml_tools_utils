@@ -323,6 +323,11 @@ def filter_samples_above_threshold(model_training_result, threshold):
 
 
 def nan_summary(df):
+    """
+    Summarize NaN values in a dataframe
+    :param df:
+    :return:
+    """
     nan_counts = df.isna().sum()
     proportion_nan = round((df.isna().sum() / len(df)), 2) * 100
     summary_df = pd.DataFrame(
@@ -416,7 +421,7 @@ def extract_feature_names(pipeline, input_data):
 def get_model_feature_importances(model_config, transformed_data):
     # TODO: importances are missing
     # TODO: need to make importances work with with feature transformers since
-    importances = model_config.test_data.feature_importances
+    # importances = model_config.test_data.feature_importances
 
     # TODO: implement feature importances setting inot the pipeline itself instead of having to do it manually here:
     model = model_config.test_data.test_model.named_steps["model"]
@@ -432,3 +437,51 @@ def get_model_feature_importances(model_config, transformed_data):
         {"Feature": feature_names, "Importance": feature_importances}
     )
     return feature_importances
+
+
+def compare_distributions(before_df, after_df):
+    # List to store comparison metrics for each feature
+    comparison_metrics = []
+
+    # Calculate missing value proportions for the original dataset
+    missing_proportions = before_df.isnull().mean()
+
+    # Iterate through the columns
+    for col in before_df.columns:
+        # Check if the column is numerical
+        if before_df[col].dtype in ['int64', 'float64']:
+            metrics = {
+                'Mean': (before_df[col].mean(), after_df[col].mean()),
+                'Median': (before_df[col].median(), after_df[col].median()),
+                'Std Dev': (before_df[col].std(), after_df[col].std()),
+                'Missing Proportion': (missing_proportions[col], 0)  # 0 after imputation
+            }
+        else:  # For categorical data, compare mode and include missing proportion
+            mode_before = before_df[col].mode().iat[0] if not before_df[col].mode().empty else 'N/A'
+            mode_after = after_df[col].mode().iat[0] if not after_df[col].mode().empty else 'N/A'
+            metrics = {
+                'Mode': (mode_before, mode_after),
+                'Missing Proportion': (missing_proportions[col], 0)
+            }
+
+        # Append metrics for this column to the list
+        for metric, values in metrics.items():
+            comparison_metrics.append({
+                'Feature': col,
+                'Metric': metric,
+                'Before Imputation': values[0],
+                'After Imputation': values[1]
+            })
+
+    # Create a DataFrame from the list of metrics
+    comparison_df = pd.DataFrame(comparison_metrics)
+
+    return comparison_df
+
+def identify_mixed_type_columns(df):
+    mixed_type_columns = []
+    for col in df.columns:
+        # Check if column has more than one data type
+        if len(df[col].apply(type).value_counts()) > 1:
+            mixed_type_columns.append(col)
+    return mixed_type_columns

@@ -443,15 +443,20 @@ def confusion_matrix_plot_v2(
 
 
 def render_feature_importances_chart(
-    feature_importances,
-    title="Feature Importance",
-    subtitle=None,
-):
+        feature_importances: pd.DataFrame,
+        title: str = "Feature Importance",
+        subtitle: str = None,
+        top_n: int = None  # New parameter to specify the top number of features
+) -> None:
+    # If top_n is specified, select the top_n features by "Importance"
+    if top_n is not None:
+        feature_importances = feature_importances.sort_values(by="Importance", ascending=False).head(top_n)
+
     plt.figure(figsize=(10, 8))
     ax = sns.barplot(data=feature_importances, y="Feature", x="Importance")
     ax.tick_params(axis="x", which="major", labelsize=16)
 
-    def custom_label_function(original_label):
+    def custom_label_function(original_label: str) -> str:
         modified_label = original_label.replace("_", " ")
         modified_label = modified_label.replace("league name", " ")
         return modified_label.title()
@@ -475,7 +480,7 @@ def render_feature_importances_chart(
             fontsize="medium",
         )
     else:
-        plt.title(title if title else "Confusion Matrix with Percentage Accuracy")
+        plt.title(title if title else "Feature Importance")
 
     plt.show()
 
@@ -1486,21 +1491,31 @@ def boxen_plots_by_category(
     if title:
         plt.title(title, pad=25)
 
-def render_shap_plot(shap_values, X_test, model_title="SHAP Plot"):
+def render_shap_plot(shap_values, X_test, model_title="SHAP Plot", max_display = 30):
 
 
     shap_values = shap_values[:, :-1]
-    plt.figure(figsize=(12, 8))
+
+    feature_count = min(len(X_test.columns), max_display)
+
+    y_size = round(feature_count / 3)
+
+    y_size = max(y_size, 8)
+    y_size = min(y_size, 30)
+
+    plt.figure(figsize=(12, y_size))
+
     ax = plt.gca()
 
     shap.summary_plot(
+
         shap_values,
+        max_display=max_display,
         features=X_test,
         feature_names=X_test.columns,
         plot_size=None,  # Disable shap's internal plot sizing
         show=False,  # Prevent shap from showing the plot automatically
         # ax=ax  # Pass the matplotlib axis object
     )
-
     plt.title(model_title)
     plt.show()
