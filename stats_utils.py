@@ -1,5 +1,8 @@
+from typing import Tuple
+
 import numpy as np
 import pandas as pd
+from scipy.stats import chi2_contingency, pointbiserialr, spearmanr
 from sklearn.metrics import (
     f1_score,
     accuracy_score,
@@ -161,10 +164,10 @@ def get_pca_explained(df, component_n=None):
         & (
             df.apply(
                 lambda x: sorted(x.unique()) == [0, 1]
-                or sorted(x.unique()) == [False, True]
+                          or sorted(x.unique()) == [False, True]
             )
         )
-    ]
+        ]
     numerical_columns = df.select_dtypes(include=["number"]).columns
     categorical_columns = df.select_dtypes(include=["object", "category"]).columns
     non_binary_numerical_columns = numerical_columns.difference(binary_columns)
@@ -202,8 +205,8 @@ def get_pca_explained(df, component_n=None):
             col
             for col in df.columns
             if col not in non_binary_numerical_columns
-            and col not in categorical_columns
-            and col not in binary_columns
+               and col not in categorical_columns
+               and col not in binary_columns
         ]
         # transformed_col_names.extend(remainder_columns)
 
@@ -252,7 +255,7 @@ def compute_class_accuracies(predictions, y_test, classes):
 
 
 def calculate_threshold_metrics(
-    data: CMResultsData, threshold: float, positive_class_index=1
+        data: CMResultsData, threshold: float, positive_class_index=1
 ) -> CMResultsDataStats:
     if positive_class_index not in [0, 1]:
         raise ValueError("positive_class_index must be 0 or 1")
@@ -397,8 +400,8 @@ def extract_feature_names(pipeline, input_data):
     """
     transformed_data = input_data
     for name, transformer in pipeline.steps[
-        :-1
-    ]:  # Exclude the last step if it's a model
+                             :-1
+                             ]:  # Exclude the last step if it's a model
         # print(name)
         transformed_data = transformer.transform(transformed_data)
 
@@ -478,6 +481,7 @@ def compare_distributions(before_df, after_df):
 
     return comparison_df
 
+
 def identify_mixed_type_columns(df):
     mixed_type_columns = []
     for col in df.columns:
@@ -485,3 +489,45 @@ def identify_mixed_type_columns(df):
         if len(df[col].apply(type).value_counts()) > 1:
             mixed_type_columns.append(col)
     return mixed_type_columns
+
+
+def correlation_test(x, y) -> Tuple[float, float]:
+    """
+
+    :param x:
+    :param y:
+    :return corr_value, p_value
+    """
+    if x.dtype.name == "category":
+        x = x.astype("object")
+    if y.dtype.name == "category":
+        y = y.astype("object")
+
+    def chi_squared_test(x, y):
+        contingency_table = pd.crosstab(x, y)
+        chi2, p, _, _ = chi2_contingency(contingency_table)
+        n = np.sum(contingency_table.values)
+        k, r = contingency_table.shape
+        cramers_v = np.sqrt(chi2 / (n * min(k - 1, r - 1)))
+        return cramers_v, p
+
+    if x.dtype == "object" or y.dtype == "object":
+        return chi_squared_test(x, y)
+    elif x.dtype == "bool" and y.dtype in ["int64", "float64"]:
+        return pointbiserialr(x, y)
+    elif y.dtype == "bool" and x.dtype in ["int64", "float64"]:
+        return pointbiserialr(y, x)
+    elif x.dtype in ["int32", "float32", "int64", "float64"] and y.dtype in ["int32", "float32", "int64", "float64"]:
+        return spearmanr(x, y)
+    else:
+        raise ValueError(
+            f"Unsupported data types for correlation test: {x.dtype} and {y.dtype}"
+        )
+
+def round_list(nums, dec=4):
+    return [round(num, dec) for num in nums]
+
+
+
+
+

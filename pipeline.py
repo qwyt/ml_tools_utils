@@ -31,6 +31,8 @@ from sklearn.model_selection import (
     KFold,
     cross_val_score,
 )
+import time
+
 from imblearn.pipeline import Pipeline as ImbPipeline
 from sklearn.model_selection._search import BaseSearchCV
 from sklearn.pipeline import Pipeline
@@ -671,7 +673,7 @@ def run_bayesian_tuning_for_config(
         model_key: str,
         pipeline_config: ModelPipelineConfig,
         df: pd.DataFrame,
-        folds=4, trials=60) -> TuningResult:
+        folds=7, trials=80) -> TuningResult:
     # tuning_results = pipeline_config.model_config.tune_hyperparameters()
     model_config = pipeline_config.model_config
     param_grid = model_config.param_grid
@@ -708,8 +710,11 @@ def run_bayesian_tuning_for_config(
         tuning_scores_train = []
         all_valid_labels = []
         all_valid_preds = []
+        fold_times = []
 
         for train_indices, valid_indices in k_fold.split(features):
+            start_time = time.time()  # Place before the processing starts in the loop
+
             # train_features, train_labels = features.iloc[train_idx], labels.iloc[train_idx]
             # valid_features, valid_labels = features.iloc[valid_idx], labels.iloc[valid_idx]
             #
@@ -782,7 +787,10 @@ def run_bayesian_tuning_for_config(
             # tuning_score_train = pipeline_config.model_config.tunning_func_target(model, valid_transformed, valid_labels)
             # tuning_scores_train.append(tuning_score_train)
 
-            valid_preds = model.predict_proba(valid_transformed)[:, 1]
+            # test_preds = model.predict_proba(features_transformermed)[:, 1]
+            train_score = pipeline_config.model_config.tunning_func_target(model, features_transformermed, train_labels)
+
+            tuning_scores_train.append(train_score)
             # auc_score = roc_auc_score(valid_labels, valid_preds)
             # score = pipeline_config.model_config.tunning_func_target(model, valid_transformed, trains_preds)
             # tuning_scores.append(score)
@@ -793,9 +801,21 @@ def run_bayesian_tuning_for_config(
             all_valid_labels.extend(valid_labels.tolist())
             all_valid_preds.extend(valid_preds_proba.tolist())
 
+            end_time = time.time()  # Place after the processing ends
+            fold_times.append(end_time - start_time)  # Calculate and store the duration of the fold processing
+
+            print(f"Fold: Tuning: n_train={len(train_labels)}, eval_set={len(valid_labels)}")
+
         # Return the average AUC score across all folds
         mean_test_score = np.mean(tuning_scores)
         mean_train_score = np.mean(tuning_scores_train)
+        mean_fold_time = np.mean(fold_times)
+
+        std_test_score = np.std(tuning_scores)
+
+        print(
+            f"Tune: val_score:{mean_test_score:.4f}, std_test_score:{std_test_score:.5f} train_set_score:{mean_train_score:.4f}\nfolds val/train: {stats_utils.round_list(tuning_scores)} / {stats_utils.round_list(tuning_scores_train)}, mean fold time: {mean_fold_time:.2f}")
+
         # # trial_results.append(TrialResult(trial.number, params, mean_test_score, mean_train_score))
         #
         # metrics_report = classification_report(valid_labels, valid_preds_labels, output_dict=True)
@@ -815,20 +835,21 @@ def run_bayesian_tuning_for_config(
         metrics_dict = {
             "mean_test_score": mean_test_score,
             "mean_train_score": mean_train_score,
-
+            "std_test_score": std_test_score,
             "macro_f1": macro_f1,
             "micro_f1": micro_f1,
             "f1_target1": f1_target1,
             "precision_target1": precision_target1,
             "recall_target1": recall_target1,
             "log_loss": logloss,
-            "pr_auc": pr_auc
+            "pr_auc": pr_auc,
+            "mean_fold_time": mean_fold_time
         }
 
         trial_results.append(
             TrialResult(trial.number, params, np.mean(tuning_scores), np.mean(tuning_scores_train), metrics_dict))
 
-        return mean_test_score
+        return mean_test_score #- std_test_score
 
     # Assuming scorer is your tunning_func_target
     scorer = pipeline_config.model_config.tunning_func_target
@@ -1032,9 +1053,9 @@ def calculate_classification_metrics(
     return metrics
 
 
-def get_deterministic_train_test_split(features_all, labels_all):
+def get_deterministic_train_test_split(features_all, labels_all, test_size=0.2):
     X_train, X_test, y_train, y_test = train_test_split(
-        features_all, labels_all, test_size=0.2, random_state=42
+        features_all, labels_all, test_size=test_size, random_state=42
     )
     return X_train, X_test, y_train, y_test
 
@@ -1117,8 +1138,8 @@ def run_pipeline_config(
     final_pipeline = get_pipeline_OPTUNA(model_pipeline_config, tuning_result.get_best_params())
     # final_pipeline.fit(X_train, y_train)
 
-    X_train_final, X_val_final, y_train_final, y_val_final = train_test_split(
-        X_train, y_train, test_size=0.1, random_state=random_state, stratify=y_train
+    X_train_final, X_val_final, y_train_final, y_val_final = get_deterministic_train_test_split(
+        X_train, y_train, test_size=0.05
     )
 
     X_val_final_transformed = final_pipeline[:-1].transform(X_val_final)

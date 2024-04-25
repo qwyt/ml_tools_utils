@@ -49,6 +49,17 @@ filter_samples_above_threshold = stats_utils.filter_samples_above_threshold
 calculate_threshold_metrics = stats_utils.calculate_threshold_metrics
 
 
+def add_spaces_to_caps(s: str) -> str:
+    if not s:
+        return s
+    result = [s[0]]
+    for char in s[1:]:
+        if char.isupper():
+            result.append(' ')
+        result.append(char)
+    return ''.join(result)
+
+
 class CustomPowerScale(ScaleBase):
     name = "custom_power"
 
@@ -197,15 +208,15 @@ def stacked_box_plot(proportions, total_players_by_league):
 
 
 def confusion_matrix_plot(
-    model_info,
-    title=None,
-    axis_label: Optional[str] = None,
-    labels: Optional[List[str]] = None,
-    ax=None,
-    annotations: str = None,
-    include_sample_count=False,
-    cbar=False,
-    subtitle=None,
+        model_info,
+        title=None,
+        axis_label: Optional[str] = None,
+        labels: Optional[List[str]] = None,
+        ax=None,
+        annotations: str = None,
+        include_sample_count=False,
+        cbar=False,
+        subtitle=None,
 ):
     if ax is None:
         plt.clf()
@@ -213,7 +224,7 @@ def confusion_matrix_plot(
 
     conf_matrix = confusion_matrix(model_info.y_test, model_info.predictions)
     conf_matrix_percentage = (
-        conf_matrix.astype("float") / conf_matrix.sum(axis=1)[:, np.newaxis]
+            conf_matrix.astype("float") / conf_matrix.sum(axis=1)[:, np.newaxis]
     )
 
     if labels is None:
@@ -267,13 +278,15 @@ def confusion_matrix_plot(
 
 
 def confusion_matrix_plot_v2(
-    cm_data,
-    ax=None,
-    title=None,
-    subtitle=None,
-    annotations: str = None,
-    regressor_input: bool = False,
+        cm_data,
+        ax=None,
+        title=None,
+        subtitle=None,
+        annotations: str = None,
+        regressor_input: bool = False,
 ):
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 8))
     predictions = cm_data.predictions
 
     if regressor_input:
@@ -344,7 +357,7 @@ def confusion_matrix_plot_v2(
 
             if i == j:
                 random_guess_accuracy = cm_data.y_test.value_counts()[j] / total_rows
-                annotation_3 += f"\n\nExpected: {random_guess_accuracy:.1%}\n"
+                annotation_3 += f"\n\nExpected Recall: {random_guess_accuracy:.1%}\n"
 
             if headline_anno:
                 ax.text(
@@ -381,7 +394,7 @@ def confusion_matrix_plot_v2(
                     horizontalalignment="center",
                     verticalalignment="center",
                     color=color,
-                    fontsize=16,
+                    fontsize=14,
                 )
             else:
                 ax.text(
@@ -517,7 +530,7 @@ def get_counts_for_section(data, start_threshold, end_threshold, inverse=False):
     section_data = data[
         (data["probabilities"] >= start_threshold)
         & (data["probabilities"] < end_threshold)
-    ]
+        ]
     predictions = (data["probabilities"] > start_threshold).astype(int)
 
     y_test = section_data["y_test"]
@@ -601,15 +614,15 @@ def add_threshold_sections(ax, sections, data):
 
 
 def plot_threshold_metrics_v2(
-    model_training_result: CMResultsData,
-    min_threshold,
-    max_threshold,
-    model_name=None,
-    class_pos=None,
-    include_vars: Optional[List[str]] = None,
-    show_threshold_n=False,
-    sections=None,
-    log_x=False,
+        model_training_result: CMResultsData,
+        min_threshold,
+        max_threshold,
+        model_name=None,
+        class_pos=None,
+        include_vars: Optional[List[str]] = None,
+        show_threshold_n=False,
+        sections=None,
+        log_x=False,
 ):
     """
     Plots accuracy, F1 score, and sample count against various threshold values.
@@ -827,7 +840,7 @@ def plot_threshold_metrics_v2(
 
         ax2.get_yaxis().set_major_formatter(plt.ScalarFormatter())
         for T, count in zip(
-            metrics_results["t_values_included"], metrics_results["sample_count"]
+                metrics_results["t_values_included"], metrics_results["sample_count"]
         ):
             if count < 500:
                 ax2.annotate(
@@ -876,26 +889,29 @@ def plot_threshold_metrics_v2(
     plt.show()
 
 
-def make_annotations(cv_info: dict):
-    log_loss = f"log_loss={cv_info['log_loss']:.2f}, " if "log_loss" in cv_info else ""
-    f1 = f"f1={cv_info['f1_macro']:.2f}, " if "f1_macro" in cv_info else ""
+def make_annotations(cv_info: dict, n_feats: Optional[int] = None):
+    log_loss = f"log_loss={cv_info['log_loss']:.3f}, " if "log_loss" in cv_info else ""
+    f1 = f"f1={cv_info['f1_macro']:.3f}, " if "f1_macro" in cv_info else ""
+    auc = f"auc={cv_info['auc']:.3f}, "
     precision = (
         f"precision={cv_info['precision_macro']:.2f}, "
         if "precision_macro" in cv_info
         else ""
     )
     recall = (
-        f"recall={cv_info['recall_macro']:.2f}, " if "recall_macro" in cv_info else ""
+        f"recall={cv_info['recall_macro']:.3f}, " if "recall_macro" in cv_info else ""
     )
-    accuracy = f"accuracy={cv_info['accuracy']:.2f}" if "accuracy" in cv_info else ""
-    return f"macro: {log_loss}{f1}{precision}{recall}{accuracy}"
+    accuracy = f"accuracy={cv_info['accuracy']:.3f}" if "accuracy" in cv_info else ""
+    n_feats_str = "" if n_feats is None else f"\nn_features={n_feats}"
+    return f"{auc}macro: {log_loss}{f1}{precision}{recall}{accuracy}{n_feats_str}"
 
 
 def roc_precision_recal_grid_plot(
-    # confusion_matrices,
-    model_training_results: Dict[str, ModelTrainingResult],
-    add_fbeta_25=False,
-    threshold_x_axis=True,
+        # confusion_matrices,
+        model_training_results: Dict[str, ModelTrainingResult],
+        add_fbeta_25=False,
+        threshold_x_axis=True,
+        show_observation_count=False
 ):
     n = len(model_training_results)
     columns = 2
@@ -968,6 +984,26 @@ def roc_precision_recal_grid_plot(
                 fontsize=12,
                 transform=axes[i, 1].transAxes,
             )
+            if show_observation_count:
+                # Convert to numpy array for efficient computation
+                prob_array = probabilities.iloc[:, 1].to_numpy()
+
+                # Efficient computation of observation counts greater than thresholds
+                observation_counts = [np.sum(prob_array > t) for t in thresholds]
+
+                # Create a secondary y-axis
+                ax2 = axes[i, 1].twinx()
+                ax2.plot(thresholds, observation_counts, label="Observation Count", linestyle="--", color="grey",
+                         alpha=0.85, linewidth=1.2)
+                ax2.set_ylabel("Observation Count")
+                ax2.grid(False)
+
+                # ax2.legend(loc="upper right")
+
+                # Combine legends from the primary and secondary axes
+                lines, labels = axes[i, 1].get_legend_handles_labels()
+                lines2, labels2 = ax2.get_legend_handles_labels()
+                axes[i, 1].legend(lines + lines2, labels + labels2, loc="best")
 
 
         else:
@@ -990,9 +1026,9 @@ def roc_precision_recal_grid_plot(
             )
 
             f2_5_scores = (
-                (1 + 2.5**2)
-                * (precision * recall)
-                / ((2.5**2 * precision) + recall + np.finfo(float).eps)
+                    (1 + 2.5 ** 2)
+                    * (precision * recall)
+                    / ((2.5 ** 2 * precision) + recall + np.finfo(float).eps)
             )
             f2_5_scores = np.nan_to_num(f2_5_scores)
 
@@ -1001,8 +1037,11 @@ def roc_precision_recal_grid_plot(
             )
             axes[i, 1].legend(loc="upper right")
 
-        annotations = make_annotations(model_training_result.cv_metrics)
-        annotations += f" n={len(y_test)}"
+        annotations_cv = make_annotations(model_training_result.cv_metrics, n_feats=len(matrix_data.x_test.columns))
+        annotations_test = make_annotations(model_training_result.test_data.metrics_2)
+
+        annotations = f"CV: {annotations_cv}\nTest: {annotations_test}"
+        annotations += f", n={len(y_test)}"
         axes[i, 0].text(
             0.0,
             -0.11,
@@ -1031,23 +1070,26 @@ def clean_tick_label(v):
 
 def _group_small_internal(proportions: pd.DataFrame, absolute=False):
     if absolute:
-        threshold = 0.07 * proportions.sum()
+        threshold = 0.025 * proportions.sum()
     else:
-        threshold = 0.07  # Set the threshold for grouping small values (10%)
+        threshold = 100  # Set the threshold for grouping small values (10%)
+    # threshold = 500
+
     small_proportions = proportions[proportions < threshold]
     other_proportion = small_proportions.sum()
     proportions = proportions[proportions >= threshold].copy()
     if other_proportion > 0:
+        # if other_proportion > min(1, proportions.sum() *0.005):
         proportions["Others"] = other_proportion
     return proportions
 
 
 def _summary_features_pie_chart(
-    col_vals: pd.Series,
-    source_df_no_cat: pd.DataFrame,
-    axes,
-    variable: str,
-    group_small=True,
+        col_vals: pd.Series,
+        source_df_no_cat: pd.DataFrame,
+        axes,
+        variable: str,
+        group_small=True,
 ):
     unique_values = col_vals.unique()
 
@@ -1212,40 +1254,13 @@ def summary_df_features(source_df: pandas.DataFrame):
 
 
 def render_corr_matrix_based_on_type(source_df: pd.DataFrame):
-    def correlation_test(x, y):
-        if x.dtype.name == "category":
-            x = x.astype("object")
-        if y.dtype.name == "category":
-            y = y.astype("object")
-
-        def chi_squared_test(x, y):
-            contingency_table = pd.crosstab(x, y)
-            chi2, p, _, _ = chi2_contingency(contingency_table)
-            n = np.sum(contingency_table.values)
-            k, r = contingency_table.shape
-            cramers_v = np.sqrt(chi2 / (n * min(k - 1, r - 1)))
-            return cramers_v, p
-
-        if x.dtype == "object" or y.dtype == "object":
-            return chi_squared_test(x, y)
-        elif x.dtype == "bool" and y.dtype in ["int64", "float64"]:
-            return pointbiserialr(x, y)
-        elif y.dtype == "bool" and x.dtype in ["int64", "float64"]:
-            return pointbiserialr(y, x)
-        elif x.dtype in ["int64", "float64"] and y.dtype in ["int64", "float64"]:
-            return spearmanr(x, y)
-        else:
-            raise ValueError(
-                f"Unsupported data types for correlation test: {x.dtype} and {y.dtype}"
-            )
-
     corr = pd.DataFrame(index=source_df.columns, columns=source_df.columns)
     p_values = pd.DataFrame(index=source_df.columns, columns=source_df.columns)
 
     for col1 in source_df.columns:
         for col2 in source_df.columns:
             if col1 != col2:
-                corr_value, p_value = correlation_test(source_df[col1], source_df[col2])
+                corr_value, p_value = stats_utils.correlation_test(source_df[col1], source_df[col2])
                 corr.loc[col1, col2] = corr_value
                 p_values.loc[col1, col2] = p_value
             else:
@@ -1300,7 +1315,8 @@ def render_corr_matrix_based_on_type(source_df: pd.DataFrame):
 
 
 def draw_distribution_pie_charts(
-    eda_df_ext: pd.DataFrame, split_var="gender", include_cols=None, group_small=True
+        eda_df_ext: pd.DataFrame, split_var="gender", include_cols=None, group_small=True, title: Optional[str] = None,
+        clean_tick_label=True,
 ):
     if include_cols is None:
         include_cols = [
@@ -1313,15 +1329,64 @@ def draw_distribution_pie_charts(
 
     ii_empl_df = eda_df_ext[[split_var, *include_cols]]
 
-    fig, axes = plt.subplots(len(include_cols), 2, figsize=(12, len(include_cols) * 5))
+    column_count = ii_empl_df[split_var].nunique()
 
+    fig, axes = plt.subplots(len(include_cols), column_count, figsize=(7 * column_count, len(include_cols) * 5))
+    if len(include_cols) == 1:
+        axes = np.array([axes]).reshape(-1, 2)
+
+    grouped_data = {}
+
+    grouped_data = {}
+    for column in include_cols:
+        full_column_data = ii_empl_df[column].value_counts()
+        if group_small:
+            grouped_data[column] = _group_small_internal(full_column_data, absolute=True)
+        else:
+            grouped_data[column] = full_column_data
+
+    # for i, column in enumerate(include_cols):
+    #
+    #     # unique_categories = ii_empl_df[column].unique()
+    #     unique_categories = grouped_data[column].index  # use grouped categories for consistent color mapping
+    #
+    #     colors = plt.cm.tab20(np.linspace(0, 1, len(unique_categories)))
+    #     color_map = dict(zip(unique_categories, colors))
+    #
+    #     for j, target in enumerate(ii_empl_df[split_var].unique()):
+    #         # target_s = ii_empl_df[ii_empl_df[split_var] == target][column]
+    #         # if group_small:
+    #         #     data = target_s.value_counts()
+    #         #     data = _group_small_internal(data, absolute=True)
+    #         #
+    #         # else:
+    #         #     data = target_s.value_counts()
+    #         target_s = ii_empl_df[ii_empl_df[split_var] == target][column]
+    #         # Re-index the target-specific data to include all possible categories including 'Others'
+    #         data = target_s.value_counts().reindex(grouped_data[column].index, fill_value=0)
     for i, column in enumerate(include_cols):
+        # 1. Determine all possible categories including 'Others' after grouping
+        all_categories = ii_empl_df[column].value_counts()
+        # if group_small:
+        #     all_categories = _group_small_internal(all_categories, absolute=True)
+
+        # 2. Set up the color map based on the grouped categories
+        unique_categories = all_categories.index
+
+        unique_categories = list(unique_categories)
+        unique_categories.append("Others")
+        colors = plt.cm.tab20(np.linspace(0, 1, len(unique_categories)))
+        color_map = dict(zip(unique_categories, colors))
+
         for j, target in enumerate(ii_empl_df[split_var].unique()):
+            # 3. Calculate counts per target, reindex to include all possible categories
+            # target_s = ii_empl_df[ii_empl_df[split_var] == target][column]
+            # data = target_s.value_counts()
+            # data = data.reindex(unique_categories, fill_value=0)  # Use reindex to fill missing categories
             target_s = ii_empl_df[ii_empl_df[split_var] == target][column]
             if group_small:
                 data = target_s.value_counts()
                 data = _group_small_internal(data, absolute=True)
-
             else:
                 data = target_s.value_counts()
 
@@ -1333,14 +1398,30 @@ def draw_distribution_pie_charts(
             # proportions = col_vals.value_counts(normalize=True)
 
             explode = [0.02] * len(data)
-            wedges, _ = axes[i, j].pie(
-                data,
-                labels=None,
-                autopct=None,
-                startangle=140,
-                wedgeprops=dict(width=0.3),
-                explode=explode,
-            )
+
+            try:
+                data = data.copy()
+
+                data.index = pd.CategoricalIndex(data.index)
+                data.index = data.index.remove_unused_categories()
+            except Exception as e:
+                raise e
+
+            try:
+                wedges, _ = axes[i, j].pie(
+                    data,
+                    labels=None,
+                    autopct=None,
+                    startangle=140,
+
+                    colors=[color_map[cat] for cat in data.index],
+
+                    wedgeprops=dict(width=0.3),
+                    explode=explode,
+                )
+
+            except Exception as e:
+                raise e
             # axes[i, j].pie(data, labels=pie_labels, autopct="%1.1f%%", startangle=90)
 
             #
@@ -1351,31 +1432,61 @@ def draw_distribution_pie_charts(
                 horizontalalignment = {-1: "right", 1: "left"}[int(np.sign(x))]
                 connectionstyle = "angle,angleA=0,angleB={}".format(angle)
                 pct = round(np.round(wedge.theta2 - wedge.theta1) / 360 * 100, 1)
-                label_tr = clean_tick_label(label)
+                label_tr = clean_tick_label(label) if clean_tick_label else label
                 # label_tr = str(label).replace("_", " ").title()
                 axes[i, j].annotate(
                     f"{label_tr}: {pct}%",
                     xy=(x / 2, y / 2),
+                    fontsize=10,
                     xytext=(1.15 * x, 1.15 * y),
                     arrowprops=dict(arrowstyle="-", connectionstyle=connectionstyle),
                     horizontalalignment=horizontalalignment,
                 )
 
-    plt.suptitle(split_var.replace("_", " ").title(), fontsize=16, y=1.02)
+            axes[i, j].text(0, 0,
+                            f"n={data.sum()}",
+                            horizontalalignment='center', verticalalignment='center',
+                            # fontsize=12,
+                            # weight='bold',
+                            # xy=(x / 2, y / 2),
+                            # xytext=(1.15 * x, 1.15 * y),
+                            fontsize=16,
+                            # arrowprops=dict(arrowstyle="-", connectionstyle=connectionstyle),
+                            # horizontalalignment=horizontalalignment,
+                            )
+    title = f'{add_spaces_to_caps(split_var).replace("_", " ").title()}' if title is None else title
+    plt.suptitle(title, fontsize=16, y=1.02)
 
     plt.tight_layout()
     plt.show()
 
 
-def boxen_plot_by_cat(c, eda_df_ext, y_target):
+def boxen_plot_by_cat(c, eda_df_ext, y_target, drop_small_cats=False):
     _df = eda_df_ext.copy()
     _df = _df[_df[y_target].notna()]
+    # grouped = _df.groupby(c)[y_target]
+    # groups = [group for name, group in grouped]
+
+    if drop_small_cats:
+        counts = _df[c].value_counts()
+        valid_cats = counts[counts >= 50].index
+        _df = _df[_df[c].isin(valid_cats)]
+        if pd.api.types.is_categorical_dtype(_df[c]):
+            _df[c] = _df[c].cat.remove_unused_categories()
+
     grouped = _df.groupby(c)[y_target]
     groups = [group for name, group in grouped]
-    stat, p_value = kruskal(*groups)
-    test_explain = f"Kruskal-Wallis Test for {c} vs {y_target}: p-value = {p_value:.3f}"
 
-    if p_value < 0.05:
+    stat, p_value = kruskal(*groups)
+
+    N = sum(len(group) for group in groups)  # Total number of observations
+    k = len(groups)  # Number of groups
+
+    eta_squared = (stat - k + 1) / (N - k)  # Calculating Eta-squared
+
+    test_explain = f"Kruskal-Wallis Test: p-value = {p_value:.3f}, Stat = {stat:.0f}, Effect Size = {eta_squared:.2f}"
+
+    if p_value < 0.05 and eta_squared >= 0.01:
         group_counts = _df.groupby(c).size()
         log_base = 2
         max_width = 0.8
@@ -1395,7 +1506,9 @@ def boxen_plot_by_cat(c, eda_df_ext, y_target):
                 color="b",
                 width=final_widths[group],
             )
-        plt.title(f"{' '.join(c.split('_')).title()}\n", fontdict={"fontsize": 18})
+
+        title = add_spaces_to_caps(c)
+        plt.title(f"{' '.join(title.split('_')).title()}\n", fontdict={"fontsize": 18})
         plt.xticks(
             ticks=range(len(group_counts)),
             labels=[f"{group}\nn={count}" for group, count in group_counts.items()],
@@ -1414,16 +1527,17 @@ def boxen_plot_by_cat(c, eda_df_ext, y_target):
         plt.xlabel("")
         plt.show()
     else:
-        return f"{c} vs {y_target} No significant difference found (p-value = {p_value:.3f})"
+        pass
+        # return f"{c} vs {y_target} No significant difference found (p-value = {p_value:.3f})"
 
 
 def boxen_plots_by_category(
-    source_df: pd.DataFrame,
-    group_col: str,
-    target_col: str,
-    title: Optional[str] = None,
-    x_label: Optional[str] = None,
-    x_range: Tuple = None,
+        source_df: pd.DataFrame,
+        group_col: str,
+        target_col: str,
+        title: Optional[str] = None,
+        x_label: Optional[str] = None,
+        x_range: Tuple = None,
 ):
     group_names = source_df[group_col].unique()
 
@@ -1491,9 +1605,8 @@ def boxen_plots_by_category(
     if title:
         plt.title(title, pad=25)
 
-def render_shap_plot(shap_values, X_test, model_title="SHAP Plot", max_display = 30):
 
-
+def render_shap_plot(shap_values, X_test, model_title="SHAP Plot", max_display=30):
     shap_values = shap_values[:, :-1]
 
     feature_count = min(len(X_test.columns), max_display)
