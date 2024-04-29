@@ -9,7 +9,7 @@ from shared.definitions import TuningResult
 from shared.ml_config_core import (
     ModelConfigsCollection,
     ModelPipelineConfig,
-    ModelTrainingResult,
+    ModelTrainingResult, ModelTrainingResultMetadata,
 )
 
 
@@ -75,18 +75,22 @@ def run_tuning_for_configs_collection(
 
 
 def build_production_model_for_tuning_result(
-        tuning_result: TuningResult, load_df: Callable[..., pd.DataFrame]
+        tuning_result: TuningResult, load_df: Callable[..., pd.DataFrame], random_state: int = 273
 ) -> ModelTrainingResult:
     start_time = time.time()
 
     df = tuning_result.model_pipeline_config.load_data(loader_function=load_df)
 
-    result = pipeline.run_pipeline_config(tuning_result, df)
+    result = pipeline.run_pipeline_config(tuning_result, df, random_state=random_state)
 
     end_time = time.time()
     elapsed_time = round(end_time - start_time, 1)
 
     print(f"{tuning_result.model_key}: {elapsed_time} seconds")
+
+    result.meta_data = ModelTrainingResultMetadata(
+        elapsed_time=elapsed_time,
+    )
 
     return result
 

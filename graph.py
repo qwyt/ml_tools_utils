@@ -1344,26 +1344,6 @@ def draw_distribution_pie_charts(
             grouped_data[column] = _group_small_internal(full_column_data, absolute=True)
         else:
             grouped_data[column] = full_column_data
-
-    # for i, column in enumerate(include_cols):
-    #
-    #     # unique_categories = ii_empl_df[column].unique()
-    #     unique_categories = grouped_data[column].index  # use grouped categories for consistent color mapping
-    #
-    #     colors = plt.cm.tab20(np.linspace(0, 1, len(unique_categories)))
-    #     color_map = dict(zip(unique_categories, colors))
-    #
-    #     for j, target in enumerate(ii_empl_df[split_var].unique()):
-    #         # target_s = ii_empl_df[ii_empl_df[split_var] == target][column]
-    #         # if group_small:
-    #         #     data = target_s.value_counts()
-    #         #     data = _group_small_internal(data, absolute=True)
-    #         #
-    #         # else:
-    #         #     data = target_s.value_counts()
-    #         target_s = ii_empl_df[ii_empl_df[split_var] == target][column]
-    #         # Re-index the target-specific data to include all possible categories including 'Others'
-    #         data = target_s.value_counts().reindex(grouped_data[column].index, fill_value=0)
     for i, column in enumerate(include_cols):
         # 1. Determine all possible categories including 'Others' after grouping
         all_categories = ii_empl_df[column].value_counts()
@@ -1379,10 +1359,6 @@ def draw_distribution_pie_charts(
         color_map = dict(zip(unique_categories, colors))
 
         for j, target in enumerate(ii_empl_df[split_var].unique()):
-            # 3. Calculate counts per target, reindex to include all possible categories
-            # target_s = ii_empl_df[ii_empl_df[split_var] == target][column]
-            # data = target_s.value_counts()
-            # data = data.reindex(unique_categories, fill_value=0)  # Use reindex to fill missing categories
             target_s = ii_empl_df[ii_empl_df[split_var] == target][column]
             if group_small:
                 data = target_s.value_counts()
@@ -1422,7 +1398,6 @@ def draw_distribution_pie_charts(
 
             except Exception as e:
                 raise e
-            # axes[i, j].pie(data, labels=pie_labels, autopct="%1.1f%%", startangle=90)
 
             #
             for wedge, label in zip(wedges, data.index):

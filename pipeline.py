@@ -370,9 +370,9 @@ def clean_params(best_params_):
 def _get_cv_for_config(model_type_a: ModelType, cv=None):
     if cv is None:
         if model_type_a.value == ModelType.Classifier.value:
-            cv = StratifiedKFold(n_splits=5, random_state=42, shuffle=True)
+            cv = StratifiedKFold(n_splits=5, random_state=47, shuffle=True)
         elif model_type_a.value == ModelType.Regressor.value:
-            cv = KFold(n_splits=5, random_state=42, shuffle=True)
+            cv = KFold(n_splits=5, random_state=47, shuffle=True)
 
     return cv
 
@@ -673,7 +673,7 @@ def run_bayesian_tuning_for_config(
         model_key: str,
         pipeline_config: ModelPipelineConfig,
         df: pd.DataFrame,
-        folds=7, trials=80) -> TuningResult:
+        folds=7, trials=250) -> TuningResult:
     # tuning_results = pipeline_config.model_config.tune_hyperparameters()
     model_config = pipeline_config.model_config
     param_grid = model_config.param_grid
@@ -705,7 +705,7 @@ def run_bayesian_tuning_for_config(
         params = {**model_config.builtin_params, **params}
 
         # cv = StratifiedKFold(n_splits=5)
-        k_fold = KFold(n_splits=folds, shuffle=True, random_state=50)
+        k_fold = KFold(n_splits=folds, shuffle=True, random_state=47)
         tuning_scores = []
         tuning_scores_train = []
         all_valid_labels = []
@@ -849,7 +849,7 @@ def run_bayesian_tuning_for_config(
         trial_results.append(
             TrialResult(trial.number, params, np.mean(tuning_scores), np.mean(tuning_scores_train), metrics_dict))
 
-        return mean_test_score #- std_test_score
+        return mean_test_score  # - std_test_score
 
     # Assuming scorer is your tunning_func_target
     scorer = pipeline_config.model_config.tunning_func_target
@@ -1055,7 +1055,7 @@ def calculate_classification_metrics(
 
 def get_deterministic_train_test_split(features_all, labels_all, test_size=0.2):
     X_train, X_test, y_train, y_test = train_test_split(
-        features_all, labels_all, test_size=test_size, random_state=42
+        features_all, labels_all, test_size=test_size, random_state=47
     )
     return X_train, X_test, y_train, y_test
 
@@ -1063,14 +1063,16 @@ def get_deterministic_train_test_split(features_all, labels_all, test_size=0.2):
 def run_pipeline_config(
         tuning_result: TuningResult,
         df: pd.DataFrame,
-        test_size: float = 0.2,
-        random_state: int = 42,
+        test_size: float = 0.075,
+        random_state: int = 273,
         cv_folds: int = 5
 ) -> ModelTrainingResult:
     """
     Execute the training pipeline for classification models using cross-validation
     and evaluate on a hold-out test set.
     """
+
+    print(f"RANDOM SEED: {random_state}")
 
     model_pipeline_config = tuning_result.model_pipeline_config
 
@@ -1082,6 +1084,8 @@ def run_pipeline_config(
     X_train, X_test, y_train, y_test = train_test_split(
         features, labels, test_size=test_size, random_state=random_state, stratify=labels
     )
+
+    print(f"\n\n\n -- \n TEST SIZE: {len(y_test)} \n\n\n\n")
 
     # Setup cross-validation
     skf = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=random_state)

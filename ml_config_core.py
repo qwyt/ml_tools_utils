@@ -1140,11 +1140,17 @@ class OLD_ModelTrainingResult:
 
 
 @dataclass
+class ModelTrainingResultMetadata:
+    elapsed_time: float
+    total_size: Optional[float] = None
+
+@dataclass
 class ModelTrainingResult:
     cv_metrics: Optional[Dict[str, float]] = None
     prod_model: Optional[Pipeline] = None
     test_data: Optional[TestTrainData] = None
     cm_data: Optional[CMResultsData] = None
+    meta_data: Optional[ModelTrainingResultMetadata] = None
 
     @staticmethod
     def serialize_model(
@@ -1156,6 +1162,11 @@ class ModelTrainingResult:
         target_path = f"{target_folder}/{model_key}.dill"
         with open(target_path, "wb") as targt_file:
             dump(res, targt_file)
+
+        file_size_bytes = os.path.getsize(target_path)
+        file_size_megabytes = file_size_bytes / (1024 * 1024)  # Convert bytes to megabytes
+
+        return file_size_megabytes
 
     @staticmethod
     def load_serialize_model(

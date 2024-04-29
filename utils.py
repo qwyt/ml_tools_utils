@@ -18,9 +18,9 @@ def plt_config(plt):
 
 def create_styled_df(df, row_idx, decimals=2):
     df = df.copy()
+
     def bold_row(s):
         return ['font-weight: bold' if s.name == row_idx else '' for _ in s]
 
-    d = dict.fromkeys(df.select_dtypes('float').columns, "{:.2f}")
-    return df.round(decimals).style.apply(bold_row, axis=1).format(d)
+    d = dict.fromkeys(df.select_dtypes('float').columns, "{" + f":.{decimals}f" + "}")
     return df.round(decimals).style.apply(bold_row, axis=1).format(d)
