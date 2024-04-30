@@ -108,7 +108,7 @@ def _generate_table_of_contents(target_export_path: str):
 
     file_paths = []
     with open(
-            os.path.join(target_export_path, "index.html"), "w", encoding="utf-8"
+        os.path.join(target_export_path, "index.html"), "w", encoding="utf-8"
     ) as f:
         f.write(
             "<html><body><h1>Lenders Club Loan Dataset Loan Risk Prediction:</h1>\n"
@@ -169,4 +169,4 @@ def export_nested_notebooks(notebooks_root_path: str, target_export_path: str):
                             f"Failed exporting :{modified_html_output_path}:\n{e}"
                         )  # with:\n{e}")
 
-    # _generate_table_of_contents(target_export_path)
+    _generate_table_of_contents(target_export_path)

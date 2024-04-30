@@ -61,7 +61,9 @@ class TuningResult:
         dump(res, f"{target_folder}/{res.model_key}.dill")
 
     @staticmethod
-    def load_serialized_tuning_result(model_key, target_folder=TUNING_RESULTS_DIR):
+    def load_serialized_tuning_result(
+        model_key, target_folder=TUNING_RESULTS_DIR
+    ) -> "TuningResult":
         return load(f"{target_folder}/{model_key}.dill")
 
     @staticmethod

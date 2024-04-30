@@ -11,7 +11,8 @@ from sklearn.preprocessing import (
     StandardScaler,
     OrdinalEncoder,
     FunctionTransformer,
-    TargetEncoder, LabelEncoder,
+    TargetEncoder,
+    LabelEncoder,
 )
 
 
@@ -61,8 +62,11 @@ def convert_to_category_label_encoder(df):
         df[col] = df[col].astype("category")
 
     # Identify categorical columns
-    categorical_columns = [col for col in df.columns if
-                           df[col].dtype == 'object' or df[col].dtype == 'category']
+    categorical_columns = [
+        col
+        for col in df.columns
+        if df[col].dtype == "object" or df[col].dtype == "category"
+    ]
 
     # Initialize LabelEncoder
     label_encoder = LabelEncoder()
@@ -83,10 +87,10 @@ def convert_to_category_label_encoder(df):
 
 
 def preprocessing_for_xgboost(
-        use_categorical_feature=False,
-        use_target_encoding=False,
-        target=None,
-        use_numerical_cats=False,
+    use_categorical_feature=False,
+    use_target_encoding=False,
+    target=None,
+    use_numerical_cats=False,
 ):
     if use_numerical_cats:
         categorical_transformer = Pipeline([("ordinal", OrdinalEncoder())])
@@ -235,8 +239,7 @@ def preprocessing_for_lgbm_OLD():
     return preprocessor
 
 
-def preprocessing_for_lgbm(
-):
+def preprocessing_for_lgbm():
     categorical_transformer = Pipeline([("ordinal", OrdinalEncoder())])
 
     return FunctionTransformer(convert_to_category, validate=False)

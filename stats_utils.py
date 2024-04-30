@@ -164,10 +164,10 @@ def get_pca_explained(df, component_n=None):
         & (
             df.apply(
                 lambda x: sorted(x.unique()) == [0, 1]
-                          or sorted(x.unique()) == [False, True]
+                or sorted(x.unique()) == [False, True]
             )
         )
-        ]
+    ]
     numerical_columns = df.select_dtypes(include=["number"]).columns
     categorical_columns = df.select_dtypes(include=["object", "category"]).columns
     non_binary_numerical_columns = numerical_columns.difference(binary_columns)
@@ -205,8 +205,8 @@ def get_pca_explained(df, component_n=None):
             col
             for col in df.columns
             if col not in non_binary_numerical_columns
-               and col not in categorical_columns
-               and col not in binary_columns
+            and col not in categorical_columns
+            and col not in binary_columns
         ]
         # transformed_col_names.extend(remainder_columns)
 
@@ -255,7 +255,7 @@ def compute_class_accuracies(predictions, y_test, classes):
 
 
 def calculate_threshold_metrics(
-        data: CMResultsData, threshold: float, positive_class_index=1
+    data: CMResultsData, threshold: float, positive_class_index=1
 ) -> CMResultsDataStats:
     if positive_class_index not in [0, 1]:
         raise ValueError("positive_class_index must be 0 or 1")
@@ -400,8 +400,8 @@ def extract_feature_names(pipeline, input_data):
     """
     transformed_data = input_data
     for name, transformer in pipeline.steps[
-                             :-1
-                             ]:  # Exclude the last step if it's a model
+        :-1
+    ]:  # Exclude the last step if it's a model
         # print(name)
         transformed_data = transformer.transform(transformed_data)
 
@@ -452,29 +452,40 @@ def compare_distributions(before_df, after_df):
     # Iterate through the columns
     for col in before_df.columns:
         # Check if the column is numerical
-        if before_df[col].dtype in ['int64', 'float64']:
+        if before_df[col].dtype in ["int64", "float64"]:
             metrics = {
-                'Mean': (before_df[col].mean(), after_df[col].mean()),
-                'Median': (before_df[col].median(), after_df[col].median()),
-                'Std Dev': (before_df[col].std(), after_df[col].std()),
-                'Missing Proportion': (missing_proportions[col], 0)  # 0 after imputation
+                "Mean": (before_df[col].mean(), after_df[col].mean()),
+                "Median": (before_df[col].median(), after_df[col].median()),
+                "Std Dev": (before_df[col].std(), after_df[col].std()),
+                "Missing Proportion": (
+                    missing_proportions[col],
+                    0,
+                ),  # 0 after imputation
             }
         else:  # For categorical data, compare mode and include missing proportion
-            mode_before = before_df[col].mode().iat[0] if not before_df[col].mode().empty else 'N/A'
-            mode_after = after_df[col].mode().iat[0] if not after_df[col].mode().empty else 'N/A'
+            mode_before = (
+                before_df[col].mode().iat[0]
+                if not before_df[col].mode().empty
+                else "N/A"
+            )
+            mode_after = (
+                after_df[col].mode().iat[0] if not after_df[col].mode().empty else "N/A"
+            )
             metrics = {
-                'Mode': (mode_before, mode_after),
-                'Missing Proportion': (missing_proportions[col], 0)
+                "Mode": (mode_before, mode_after),
+                "Missing Proportion": (missing_proportions[col], 0),
             }
 
         # Append metrics for this column to the list
         for metric, values in metrics.items():
-            comparison_metrics.append({
-                'Feature': col,
-                'Metric': metric,
-                'Before Imputation': values[0],
-                'After Imputation': values[1]
-            })
+            comparison_metrics.append(
+                {
+                    "Feature": col,
+                    "Metric": metric,
+                    "Before Imputation": values[0],
+                    "After Imputation": values[1],
+                }
+            )
 
     # Create a DataFrame from the list of metrics
     comparison_df = pd.DataFrame(comparison_metrics)
@@ -517,17 +528,18 @@ def correlation_test(x, y) -> Tuple[float, float]:
         return pointbiserialr(x, y)
     elif y.dtype == "bool" and x.dtype in ["int64", "float64"]:
         return pointbiserialr(y, x)
-    elif x.dtype in ["int32", "float32", "int64", "float64"] and y.dtype in ["int32", "float32", "int64", "float64"]:
+    elif x.dtype in ["int32", "float32", "int64", "float64"] and y.dtype in [
+        "int32",
+        "float32",
+        "int64",
+        "float64",
+    ]:
         return spearmanr(x, y)
     else:
         raise ValueError(
             f"Unsupported data types for correlation test: {x.dtype} and {y.dtype}"
         )
 
+
 def round_list(nums, dec=4):
     return [round(num, dec) for num in nums]
-
-
-
-
-

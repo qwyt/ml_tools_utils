@@ -18,7 +18,10 @@ from sklearn.metrics import (
     r2_score,
     median_absolute_error,
     mean_absolute_error,
-    log_loss, roc_auc_score, average_precision_score, precision_recall_curve,
+    log_loss,
+    roc_auc_score,
+    average_precision_score,
+    precision_recall_curve,
 )
 from sklearn.metrics._scorer import _BaseScorer
 from sklearn.model_selection import (
@@ -48,7 +51,8 @@ from shared.ml_config_core import (
     ModelTrainingResult,
     TuneType,
     ModelType,
-    ModelPipelineConfig, Range,
+    ModelPipelineConfig,
+    Range,
 )
 
 metrics_decls = ["accuracy", "precision_macro", "recall_macro", "f1_macro"]
@@ -148,10 +152,10 @@ def get_config_param_grid(config: ModelConfig):
 
 
 def __get_model_params(
-        config: ModelConfig,
-        enable_hyperparameter_tuning=False,
-        uses_custom_threshold=False,
-        _best_params=None,
+    config: ModelConfig,
+    enable_hyperparameter_tuning=False,
+    uses_custom_threshold=False,
+    _best_params=None,
 ):
     best_params = {}
 
@@ -184,9 +188,9 @@ def __get_model_params(
         builtin_params = {}
         for k, v in config.builtin_params.items():
             if enable_hyperparameter_tuning:
-                builtin_params[
-                    k.replace("model__", "model_proba__")
-                ] = config.builtin_params[k]
+                builtin_params[k.replace("model__", "model_proba__")] = (
+                    config.builtin_params[k]
+                )
             else:
                 builtin_params[k.replace("model__", "")] = config.builtin_params[k]
     else:
@@ -200,10 +204,10 @@ def __get_model_params(
 
 
 def get_pipeline(
-        model_pipeline_config: ModelPipelineConfig,
-        enable_transformer_hyperparameter_tuning=False,
-        enable_model_hyperparameter_tuning=False,
-        best_params=None,
+    model_pipeline_config: ModelPipelineConfig,
+    enable_transformer_hyperparameter_tuning=False,
+    enable_model_hyperparameter_tuning=False,
+    best_params=None,
 ):
     model_config = model_pipeline_config.model_config
     transformer_config = model_pipeline_config.transformer_config
@@ -293,10 +297,12 @@ def get_pipeline(
 
 
 def get_pipeline_OPTUNA(
-        model_pipeline_config: ModelPipelineConfig,
-        params=None,
+    model_pipeline_config: ModelPipelineConfig,
+    params=None,
 ):
-    def __merge_model_params(model_config: ModelPipelineConfig, params: Dict[str, Any]) -> Dict[str, Any]:
+    def __merge_model_params(
+        model_config: ModelPipelineConfig, params: Dict[str, Any]
+    ) -> Dict[str, Any]:
 
         builtin_params = model_config.model_config.builtin_params
         model_params = {
@@ -410,10 +416,10 @@ def _get_n_jobs(model_pipeline_config):
 
 
 def _tune_transformer_params(
-        model_pipeline_config: ModelPipelineConfig,
-        features: pd.DataFrame,
-        labels: pd.DataFrame,
-        cv=2,
+    model_pipeline_config: ModelPipelineConfig,
+    features: pd.DataFrame,
+    labels: pd.DataFrame,
+    cv=2,
 ):
     """
     Tunes  preprocessing transformer parameters using fixed model hyperparameters.
@@ -475,7 +481,7 @@ def _update_dynamic_builtin_params(params, model_pipeline_config, features):
 
 
 def _tune_model_params(
-        best_transformer_params, model_pipeline_config, features, labels, cv=5
+    best_transformer_params, model_pipeline_config, features, labels, cv=5
 ) -> Tuple[RandomizedSearchCV, pd.DataFrame]:
     """
     New streamlined version of hyperparameter tuning for a given model using fixed preprocessing parameters. Note that
@@ -521,14 +527,14 @@ def _tune_model_params(
 
 
 def _build_tuning_result(
-        model_search: RandomizedSearchCV,
-        pipeline_search: GridSearchCV,
-        pipeline_config: ModelPipelineConfig,
-        model_key: str,
-        transformer_tun_all_civ_results: pd.DataFrame,
-        hyper_param_all_cv_results: pd.DataFrame,
-        features=pd.DataFrame,
-        labels=pd.Series,
+    model_search: RandomizedSearchCV,
+    pipeline_search: GridSearchCV,
+    pipeline_config: ModelPipelineConfig,
+    model_key: str,
+    transformer_tun_all_civ_results: pd.DataFrame,
+    hyper_param_all_cv_results: pd.DataFrame,
+    features=pd.DataFrame,
+    labels=pd.Series,
 ) -> TuningResult:
     """
     Build the tuning results for a given best estimator and tuning history, split from old 'run_tunning_for_config_OLD_2'
@@ -572,9 +578,9 @@ def _build_tuning_result(
         model_key=model_key,
         model_pipeline_config=pipeline_config,
         model_params={**clean_params(model_search.best_params_)},
-        pipeline_params={**clean_params(pipeline_search.best_params_)}
-        if pipeline_search
-        else {},
+        pipeline_params=(
+            {**clean_params(pipeline_search.best_params_)} if pipeline_search else {}
+        ),
         dataset_description=dataset_description,
         all_scores={
             k: v.tolist() if isinstance(v, np.ndarray) else v
@@ -631,14 +637,14 @@ class TuningRunData:
         data = []
         for result in self.trial_results:
             row = {
-                'Trial Number': result.number,
-                'Mean Test Score (AUC)': result.mean_test_score,
+                "Trial Number": result.number,
+                "Mean Test Score (AUC)": result.mean_test_score,
                 **result.classification_metrics,
-                'Parameters': result.params,
+                "Parameters": result.params,
             }
             data.append(row)
         df = pd.DataFrame(data)
-        return df.sort_values(by='Mean Test Score (AUC)', ascending=False)
+        return df.sort_values(by="Mean Test Score (AUC)", ascending=False)
 
 
 # def scoring_wrapper(scorer, model, X, y_true):
@@ -657,6 +663,7 @@ class TuningRunData:
 #     # This assumes y_pred is probabilities if _needs_proba is True, labels otherwise.
 #     return scorer._score_func(y_true, y_pred)
 
+
 # def scoring_wrapper(scorer, model, X, y_true):
 #     Direct use of scorer, correctly handling needs_proba
 # return scorer(model, X, y_true)
@@ -670,10 +677,12 @@ def scoring_wrapper(scorer, model, X, y_true):
 
 
 def run_bayesian_tuning_for_config(
-        model_key: str,
-        pipeline_config: ModelPipelineConfig,
-        df: pd.DataFrame,
-        folds=7, trials=250) -> TuningResult:
+    model_key: str,
+    pipeline_config: ModelPipelineConfig,
+    df: pd.DataFrame,
+    folds=5,
+    trials=120,
+) -> TuningResult:
     # tuning_results = pipeline_config.model_config.tune_hyperparameters()
     model_config = pipeline_config.model_config
     param_grid = model_config.param_grid
@@ -695,11 +704,17 @@ def run_bayesian_tuning_for_config(
             elif isinstance(value, Range):  # Numeric range
                 try:
                     if value.value_type == int:
-                        params[key] = trial.suggest_int(key, value.start, value.end, step=value.step)
+                        params[key] = trial.suggest_int(
+                            key, value.start, value.end, step=value.step
+                        )
                     elif value.value_type == float:
-                        params[key] = trial.suggest_float(key, value.start, value.end, step=value.step)
+                        params[key] = trial.suggest_float(
+                            key, value.start, value.end, step=value.step
+                        )
                     else:
-                        raise ValueError(f"Invalid search value type for parameter {key}: {value}")
+                        raise ValueError(
+                            f"Invalid search value type for parameter {key}: {value}"
+                        )
                 except Exception as ex:
                     raise ex
         params = {**model_config.builtin_params, **params}
@@ -720,8 +735,14 @@ def run_bayesian_tuning_for_config(
             #
             # X_train, X_valid = train_features.iloc[train_idx], train_features.iloc[valid_idx]
             # y_train, y_valid = train_labels.iloc[train_idx], train_labels.iloc[valid_idx]
-            train_features, train_labels = features.iloc[train_indices], labels.iloc[train_indices]
-            valid_features, valid_labels = features.iloc[valid_indices], labels.iloc[valid_indices]
+            train_features, train_labels = (
+                features.iloc[train_indices],
+                labels.iloc[train_indices],
+            )
+            valid_features, valid_labels = (
+                features.iloc[valid_indices],
+                labels.iloc[valid_indices],
+            )
 
             # Fit the model for the current fold
             # model = LGBMClassifier(**params)
@@ -738,17 +759,18 @@ def run_bayesian_tuning_for_config(
             features_transformermed = pipeline[:-1].fit_transform(train_features)
             valid_transformed = pipeline[:-1].transform(valid_features)
 
-            pipeline.fit(train_features,
-                         train_labels,
-                         model__eval_metric='auc',
-                         model__eval_set=[
-                             (valid_transformed, valid_labels),
-                             # (features_transformermed, train_labels)
-                         ],
-                         model__eval_names=['valid'],
-                         model__categorical_feature="auto",
-                         # **params,
-                         )
+            pipeline.fit(
+                train_features,
+                train_labels,
+                model__eval_metric="auc",
+                model__eval_set=[
+                    (valid_transformed, valid_labels),
+                    # (features_transformermed, train_labels)
+                ],
+                model__eval_names=["valid"],
+                model__categorical_feature="auto",
+                # **params,
+            )
 
             # model_eval_set=[(X_valid, y_valid)],
             #              model_eval_set=['valid'],
@@ -777,7 +799,9 @@ def run_bayesian_tuning_for_config(
             valid_preds = model.predict_proba(valid_transformed)[:, 1]
 
             # Directly use the scorer here, assuming it's designed for probabilities
-            valid_score = pipeline_config.model_config.tunning_func_target(model, valid_transformed, valid_labels)
+            valid_score = pipeline_config.model_config.tunning_func_target(
+                model, valid_transformed, valid_labels
+            )
             tuning_scores.append(valid_score)
 
             # train_score = scoring_wrapper(pipeline_config.model_config.tunning_func_target, model,
@@ -788,7 +812,9 @@ def run_bayesian_tuning_for_config(
             # tuning_scores_train.append(tuning_score_train)
 
             # test_preds = model.predict_proba(features_transformermed)[:, 1]
-            train_score = pipeline_config.model_config.tunning_func_target(model, features_transformermed, train_labels)
+            train_score = pipeline_config.model_config.tunning_func_target(
+                model, features_transformermed, train_labels
+            )
 
             tuning_scores_train.append(train_score)
             # auc_score = roc_auc_score(valid_labels, valid_preds)
@@ -802,9 +828,13 @@ def run_bayesian_tuning_for_config(
             all_valid_preds.extend(valid_preds_proba.tolist())
 
             end_time = time.time()  # Place after the processing ends
-            fold_times.append(end_time - start_time)  # Calculate and store the duration of the fold processing
+            fold_times.append(
+                end_time - start_time
+            )  # Calculate and store the duration of the fold processing
 
-            print(f"Fold: Tuning: n_train={len(train_labels)}, eval_set={len(valid_labels)}")
+            print(
+                f"Fold: Tuning: n_train={len(train_labels)}, eval_set={len(valid_labels)}"
+            )
 
         # Return the average AUC score across all folds
         mean_test_score = np.mean(tuning_scores)
@@ -814,7 +844,8 @@ def run_bayesian_tuning_for_config(
         std_test_score = np.std(tuning_scores)
 
         print(
-            f"Tune: val_score:{mean_test_score:.4f}, std_test_score:{std_test_score:.5f} train_set_score:{mean_train_score:.4f}\nfolds val/train: {stats_utils.round_list(tuning_scores)} / {stats_utils.round_list(tuning_scores_train)}, mean fold time: {mean_fold_time:.2f}")
+            f"Tune: val_score:{mean_test_score:.4f}, std_test_score:{std_test_score:.5f} train_set_score:{mean_train_score:.4f}\nfolds val/train: {stats_utils.round_list(tuning_scores)} / {stats_utils.round_list(tuning_scores_train)}, mean fold time: {mean_fold_time:.2f}"
+        )
 
         # # trial_results.append(TrialResult(trial.number, params, mean_test_score, mean_train_score))
         #
@@ -823,11 +854,19 @@ def run_bayesian_tuning_for_config(
         # avg_metrics = {metric: scores['weighted avg'] for metric, scores in metrics_report.items() if
         #                metric != 'support'}
         # Calculate metrics for binary classification
-        macro_f1 = f1_score(all_valid_labels, np.round(all_valid_preds), average='macro')
-        micro_f1 = f1_score(all_valid_labels, np.round(all_valid_preds), average='micro')
+        macro_f1 = f1_score(
+            all_valid_labels, np.round(all_valid_preds), average="macro"
+        )
+        micro_f1 = f1_score(
+            all_valid_labels, np.round(all_valid_preds), average="micro"
+        )
         f1_target1 = f1_score(all_valid_labels, np.round(all_valid_preds), pos_label=1)
-        precision_target1 = precision_score(all_valid_labels, np.round(all_valid_preds), pos_label=1)
-        recall_target1 = recall_score(all_valid_labels, np.round(all_valid_preds), pos_label=1)
+        precision_target1 = precision_score(
+            all_valid_labels, np.round(all_valid_preds), pos_label=1
+        )
+        recall_target1 = recall_score(
+            all_valid_labels, np.round(all_valid_preds), pos_label=1
+        )
         logloss = log_loss(all_valid_labels, all_valid_preds)
         pr_auc = average_precision_score(all_valid_labels, all_valid_preds)
 
@@ -843,11 +882,18 @@ def run_bayesian_tuning_for_config(
             "recall_target1": recall_target1,
             "log_loss": logloss,
             "pr_auc": pr_auc,
-            "mean_fold_time": mean_fold_time
+            "mean_fold_time": mean_fold_time,
         }
 
         trial_results.append(
-            TrialResult(trial.number, params, np.mean(tuning_scores), np.mean(tuning_scores_train), metrics_dict))
+            TrialResult(
+                trial.number,
+                params,
+                np.mean(tuning_scores),
+                np.mean(tuning_scores_train),
+                metrics_dict,
+            )
+        )
 
         return mean_test_score  # - std_test_score
 
@@ -857,15 +903,15 @@ def run_bayesian_tuning_for_config(
     # Determine if the study should maximize or minimize based on the scorer
     # direction = 'maximize' if scorer._sign > 0 else 'minimize' NOT NEEDED WHEN greater_is_better=False
 
-    study: optuna.Study = optuna.create_study(direction='maximize')
-    study.optimize(objective,
-                   n_trials=trials)
+    study: optuna.Study = optuna.create_study(direction="maximize")
+    study.optimize(objective, n_trials=trials)
     # Output the best trial results
     # print("Best trial:")
     # print(study.best_trial.params)
 
     print(
-        f"\n -- -- --\n TUNING RESULT: \n {model_key}: auc = {study.best_trial.value} params: {study.best_trial.params}\n -- --\n")
+        f"\n -- -- --\n TUNING RESULT: \n {model_key}: auc = {study.best_trial.value} params: {study.best_trial.params}\n -- --\n"
+    )
     best_params = study.best_trial.params
     best_test_score = study.best_trial.value
 
@@ -878,7 +924,7 @@ def run_bayesian_tuning_for_config(
         best_test_score=best_test_score,
         trial_results=trial_results,
         feature_types=feature_types,
-        num_rows=num_rows
+        num_rows=num_rows,
     )
     dataset_description = {
         "num_rows": len(features),
@@ -892,12 +938,11 @@ def run_bayesian_tuning_for_config(
         model_params=best_params,
         pipeline_params={},
         dataset_description={},
-
         all_scores=trial_results,
         result_report={},
         best_score=best_test_score,
         transformer_tun_all_civ_results=None,
-        hyper_param_all_cv_results=tuning_summary.export_trials_dataframe()
+        hyper_param_all_cv_results=tuning_summary.export_trials_dataframe(),
     )
 
     return tunning_result
@@ -920,75 +965,75 @@ def run_bayesian_tuning_for_config(
     # return tuning_results
 
 
-def run_tunning_for_config_OLD2(
-        model_key: str,
-        pipeline_config: ModelPipelineConfig,
-        df: pd.DataFrame,
-        cv=None,
-) -> TuningResult:
-    # Run any fixed preprocessors that are not used for tuning
-    # if len(pipeline_config.transformer_config.fixed_preprocessors) > 0:
-    #     for t_def in pipeline_config.transformer_config.fixed_preprocessors:
-    #         t = t_def()
-    #         df = t.transform(df)
-    if pipeline_config.transformer_config.fixed_preprocessors:
-        df = run_fixed_transformers(
-            pipeline_config.transformer_config.fixed_preprocessors, df
-        )
-    # The target column is prefixed with target__, df should only have one
-    features, labels = _get_features_labels(df)
-    tuning_grid = pipeline_config.transformer_config.get_feature_search_grid()
-
-    # Are there any combinations of transformers
-    skip_feature_tuning = all(
-        [True if len(v) == 1 else False for v in tuning_grid.values()]
-    )
-
-    # if len(tuning_grid) > 0:
-    # if skip_feature_tuning:
-    #     best_transformer_params = {k: v[0] for k, v in tuning_grid.items()}
-    #     best_preproc_transformer_sarch = None
-    #     print(f"Skip transformer tuning, only 1 pipeline: {best_transformer_params} ")
-    if len(tuning_grid) > 0:
-        (
-            best_preproc_transformer_sarch,
-            transformer_tun_all_civ_results,
-        ) = _tune_transformer_params(pipeline_config, features, labels, cv=5)
-
-        # TODO: export both this and hyperparams
-        best_transformer_params = best_preproc_transformer_sarch.best_params_
-    else:
-        best_preproc_transformer_sarch = None
-        transformer_tun_all_civ_results = None
-        best_transformer_params = {}
-
-    if hasattr(pipeline_config.model_config, "tune_hyperparameters"):
-
-        # TODO: implement cross validation
-        pipeline_config.model_config.tune_hyperparameters(train_features, train_labels, valid_features, valid_labels,
-                                                          cat_indices)
-    else:
-        # REMOVE, legacy for XGBoost
-        search_results, hyper_param_all_cv_results = _tune_model_params(
-            best_transformer_params,
-            pipeline_config,
-            features=features,
-            labels=labels,
-            cv=5
-        )
-
-    tuning_results = _build_tuning_result(
-        model_search=search_results,
-        pipeline_search=best_preproc_transformer_sarch,
-        pipeline_config=pipeline_config,
-        model_key=model_key,
-        features=features,
-        labels=labels,
-        transformer_tun_all_civ_results=transformer_tun_all_civ_results,
-        hyper_param_all_cv_results=hyper_param_all_cv_results,
-    )
-
-    return tuning_results
+# def run_tunning_for_config_OLD2(
+#         model_key: str,
+#         pipeline_config: ModelPipelineConfig,
+#         df: pd.DataFrame,
+#         cv=None,
+# ) -> TuningResult:
+#     # Run any fixed preprocessors that are not used for tuning
+#     # if len(pipeline_config.transformer_config.fixed_preprocessors) > 0:
+#     #     for t_def in pipeline_config.transformer_config.fixed_preprocessors:
+#     #         t = t_def()
+#     #         df = t.transform(df)
+#     if pipeline_config.transformer_config.fixed_preprocessors:
+#         df = run_fixed_transformers(
+#             pipeline_config.transformer_config.fixed_preprocessors, df
+#         )
+#     # The target column is prefixed with target__, df should only have one
+#     features, labels = _get_features_labels(df)
+#     tuning_grid = pipeline_config.transformer_config.get_feature_search_grid()
+#
+#     # Are there any combinations of transformers
+#     skip_feature_tuning = all(
+#         [True if len(v) == 1 else False for v in tuning_grid.values()]
+#     )
+#
+#     # if len(tuning_grid) > 0:
+#     # if skip_feature_tuning:
+#     #     best_transformer_params = {k: v[0] for k, v in tuning_grid.items()}
+#     #     best_preproc_transformer_sarch = None
+#     #     print(f"Skip transformer tuning, only 1 pipeline: {best_transformer_params} ")
+#     if len(tuning_grid) > 0:
+#         (
+#             best_preproc_transformer_sarch,
+#             transformer_tun_all_civ_results,
+#         ) = _tune_transformer_params(pipeline_config, features, labels, cv=5)
+#
+#         # TODO: export both this and hyperparams
+#         best_transformer_params = best_preproc_transformer_sarch.best_params_
+#     else:
+#         best_preproc_transformer_sarch = None
+#         transformer_tun_all_civ_results = None
+#         best_transformer_params = {}
+#
+#     if hasattr(pipeline_config.model_config, "tune_hyperparameters"):
+#
+#         # TODO: implement cross validation
+#         pipeline_config.model_config.tune_hyperparameters(train_features, train_labels, valid_features, valid_labels,
+#                                                           cat_indices)
+#     else:
+#         # REMOVE, legacy for XGBoost
+#         search_results, hyper_param_all_cv_results = _tune_model_params(
+#             best_transformer_params,
+#             pipeline_config,
+#             features=features,
+#             labels=labels,
+#             cv=5
+#         )
+#
+#     tuning_results = _build_tuning_result(
+#         model_search=search_results,
+#         pipeline_search=best_preproc_transformer_sarch,
+#         pipeline_config=pipeline_config,
+#         model_key=model_key,
+#         features=features,
+#         labels=labels,
+#         transformer_tun_all_civ_results=transformer_tun_all_civ_results,
+#         hyper_param_all_cv_results=hyper_param_all_cv_results,
+#     )
+#
+#     return tuning_results
 
 
 def get_tuning_target(config: ModelConfig):
@@ -1008,17 +1053,17 @@ def get_tuning_target(config: ModelConfig):
 
 
 def calculate_classification_metrics(
-        labels: pd.Series,
-        all_probabilities: pd.Series,
-        all_predictions: pd.Series,
+    labels: pd.Series,
+    all_probabilities: pd.Series,
+    all_predictions: pd.Series,
 ) -> Dict:
     """Calculate classification metrics."""
 
     auc = roc_auc_score(labels, all_probabilities)
     # precision, recall, _ = precision_recall_curve(labels, all_probabilities)
     pr_auc = average_precision_score(labels, all_probabilities)
-    f1_micro = f1_score(labels, all_predictions, average='micro')
-    f1_macro = f1_score(labels, all_predictions, average='macro')
+    f1_micro = f1_score(labels, all_predictions, average="micro")
+    f1_macro = f1_score(labels, all_predictions, average="macro")
     logloss = log_loss(labels, all_predictions)
 
     metrics = {
@@ -1029,7 +1074,6 @@ def calculate_classification_metrics(
         "_f1_micro": f1_micro,
         "_f1_macro": f1_macro,
         "logloss": logloss,
-
         "accuracy": accuracy_score(labels, all_predictions),
         "precision_macro": precision_score(labels, all_predictions, average="macro"),
         "recall_macro": recall_score(labels, all_predictions, average="macro"),
@@ -1053,36 +1097,93 @@ def calculate_classification_metrics(
     return metrics
 
 
-def get_deterministic_train_test_split(features_all, labels_all, test_size=0.2):
-    X_train, X_test, y_train, y_test = train_test_split(
-        features_all, labels_all, test_size=test_size, random_state=47
+# def get_deterministic_train_test_split_old(df, random_state: int = 273, test_size: float = 0.075):
+#     features, labels = _get_features_labels(df)
+#     X_train, X_test, y_train, y_test = train_test_split(
+#         features, labels, test_size=test_size, random_state=random_state, stratify=labels
+#     )
+#
+#     return X_train, X_test, y_train, y_test
+
+# def get_deterministic_train_test_split_old(features_all, labels_all, test_size=0.2):
+#     X_train, X_test, y_train, y_test = train_test_split(
+#         features_all, labels_all, test_size=test_size, random_state=47
+#     )
+#     return X_train, X_test, y_train, y_test
+#
+#
+# from sklearn.model_selection import train_test_split
+
+
+def get_deterministic_train_test_split(
+    df,
+    random_state: int = 273,
+    test_size: float = 0.1,
+    include_calibration: bool = False,
+):
+    """
+    Splits the data into training and test sets, optionally including a calibration set.
+    :param df: The DataFrame containing the data to split.
+    :param random_state: The random state for reproducibility.
+    :param test_size: The proportion of the dataset to include in the test split.
+    :param include_calibration: Boolean indicating whether to include a calibration set.
+    :return: Returns training and test sets, optionally includes calibration set.
+    """
+    features, labels = _get_features_labels(
+        df
+    )  # Define or adjust based on how you extract features and labels
+    X_train, X_temp, y_train, y_temp = train_test_split(
+        features,
+        labels,
+        test_size=2 * test_size if include_calibration else test_size,
+        random_state=random_state,
+        stratify=labels,
     )
-    return X_train, X_test, y_train, y_test
+
+    if include_calibration:
+        # Split the temporary test set into actual test and calibration sets
+        X_test, X_calib, y_test, y_calib = train_test_split(
+            X_temp,
+            y_temp,
+            test_size=0.5,
+            random_state=random_state,  # Ensures equal split
+        )
+        return (
+            X_train,
+            X_calib,
+            y_train,
+            y_calib,
+        )  # Return calibration set instead of test set when requested
+    else:
+        return X_train, X_temp, y_train, y_temp
 
 
 def run_pipeline_config(
-        tuning_result: TuningResult,
-        df: pd.DataFrame,
-        test_size: float = 0.075,
-        random_state: int = 273,
-        cv_folds: int = 5
+    tuning_result: TuningResult,
+    df: pd.DataFrame,
+    test_size: float = 0.075,
+    random_state: int = 420,
+    cv_folds: int = 5,
 ) -> ModelTrainingResult:
     """
     Execute the training pipeline for classification models using cross-validation
     and evaluate on a hold-out test set.
     """
 
-    print(f"RANDOM SEED: {random_state}")
-
     model_pipeline_config = tuning_result.model_pipeline_config
 
     if hasattr(model_pipeline_config.transformer_config, "fixed_preprocessors"):
         if model_pipeline_config.transformer_config.fixed_preprocessors:
-            df = run_fixed_transformers(model_pipeline_config.transformer_config.fixed_preprocessors, df)
+            df = run_fixed_transformers(
+                model_pipeline_config.transformer_config.fixed_preprocessors, df
+            )
 
-    features, labels = _get_features_labels(df)
-    X_train, X_test, y_train, y_test = train_test_split(
-        features, labels, test_size=test_size, random_state=random_state, stratify=labels
+    # features, labels = _get_features_labels(df)
+    # X_train, X_test, y_train, y_test = train_test_split(
+    #     features, labels, test_size=test_size, random_state=random_state, stratify=labels
+    # )
+    X_train, X_test, y_train, y_test = get_deterministic_train_test_split(
+        df, random_state=random_state, test_size=0.1
     )
 
     print(f"\n\n\n -- \n TEST SIZE: {len(y_test)} \n\n\n\n")
@@ -1091,7 +1192,9 @@ def run_pipeline_config(
     skf = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=random_state)
     cv_metrics = []
 
-    pipeline = get_pipeline_OPTUNA(model_pipeline_config, tuning_result.get_best_params())
+    pipeline = get_pipeline_OPTUNA(
+        model_pipeline_config, tuning_result.get_best_params()
+    )
 
     for train_index, test_index in skf.split(X_train, y_train):
         X_train_fold, X_valid_fold = X_train.iloc[train_index], X_train.iloc[test_index]
@@ -1103,11 +1206,12 @@ def run_pipeline_config(
 
         # Fit the model with specified parameters
         pipeline.fit(
-            X_train_fold, y_train_fold,
-            model__eval_metric='auc',
+            X_train_fold,
+            y_train_fold,
+            model__eval_metric="auc",
             model__eval_set=[(X_valid_transformed, y_valid_fold)],
-            model__eval_names=['valid'],
-            model__categorical_feature='auto',
+            model__eval_names=["valid"],
+            model__categorical_feature="auto",
         )
 
         # Generate predictions and probabilities
@@ -1115,7 +1219,9 @@ def run_pipeline_config(
         y_pred_fold = pipeline.predict(X_valid_fold)
 
         # Calculate metrics for this fold
-        fold_metrics = calculate_classification_metrics(y_valid_fold, y_pred_proba_fold, y_pred_fold)
+        fold_metrics = calculate_classification_metrics(
+            y_valid_fold, y_pred_proba_fold, y_pred_fold
+        )
         cv_metrics.append(fold_metrics)
 
     # Calculate average CV metrics
@@ -1132,37 +1238,83 @@ def run_pipeline_config(
     # Calculate the average for scalar metrics
     avg_cv_metrics = {
         metric: np.mean([fold_metrics[metric] for fold_metrics in cv_metrics])
-        for metric in cv_metrics[0] if metric != 'confusion_matrix'
+        for metric in cv_metrics[0]
+        if metric != "confusion_matrix"
     }
 
     # Add the summed confusion matrix back to the averaged metrics
     # avg_cv_metrics['confusion_matrix'] = conf_matrix_sum.tolist()
 
     # Final model training on all training data
-    final_pipeline = get_pipeline_OPTUNA(model_pipeline_config, tuning_result.get_best_params())
+    final_pipeline = get_pipeline_OPTUNA(
+        model_pipeline_config, tuning_result.get_best_params()
+    )
     # final_pipeline.fit(X_train, y_train)
 
-    X_train_final, X_val_final, y_train_final, y_val_final = get_deterministic_train_test_split(
-        X_train, y_train, test_size=0.05
+    # X_train_final, X_val_final, y_train_final, y_val_final = get_deterministic_train_test_split_old(
+    #     X_train, y_train,
+    #     # df,
+    #     test_size=0.05,
+    #     # random_state=random_state
+    # )
+    # X_train_final, X_val_final, y_train_final, y_val_final = get_deterministic_train_test_split(
+    #     # X_train, y_train,
+    #     df,
+    #     test_size=0.05, random_state=42
+    # )
+
+    # X_val_final_transformed = final_pipeline[:-1].transform(X_val_final)
+
+    # # Adjust the fit method to include the eval_set and eval_metric for early stopping
+    # final_pipeline.fit(
+    #     X_train_final, y_train_final,
+    #     model__eval_set=[(X_val_final_transformed, y_val_final)],
+    #     model__eval_names=['valid'],
+    #     model__eval_metric='auc',
+    #     model__categorical_feature='auto'
+    # )
+    prod_X = df.drop(columns=["TARGET"])
+    prod_y = df["TARGET"]
+
+    # Split data into training and remaining 30%
+    prod_X_train, prod_X_remaining, prod_y_train, prod_y_remaining = (
+        get_deterministic_train_test_split(
+            df,
+            # test_size=0.075,
+            random_state=random_state,
+        )
+    )
+    # prod_X_train, prod_X_remaining, prod_y_train, prod_y_remaining = train_test_split(prod_X, prod_y, test_size=0.3, random_state=42)
+
+    # Split remaining data into validation and test sets each of 15%
+    prod_X_valid, prod_X_test, prod_y_valid, prod_y_test = train_test_split(
+        prod_X_remaining, prod_y_remaining, test_size=0.8, random_state=random_state
     )
 
-    X_val_final_transformed = final_pipeline[:-1].transform(X_val_final)
+    prod_X_val_final_transformed = final_pipeline[:-1].transform(prod_X_valid)
 
     # Adjust the fit method to include the eval_set and eval_metric for early stopping
     final_pipeline.fit(
-        X_train_final, y_train_final,
-        model__eval_set=[(X_val_final_transformed, y_val_final)],
-        model__eval_names=['valid'],
-        model__eval_metric='auc',
-        model__categorical_feature='auto'
+        prod_X_train,
+        prod_y_train,
+        model__eval_set=[(prod_X_val_final_transformed, prod_y_valid)],
+        model__eval_names=["valid"],
+        model__eval_metric="auc",
+        model__categorical_feature="auto",
+    )
+
+    print(
+        f"Training: {model_pipeline_config.model_config.model_key}\nsizes, train={len(prod_X_train)}, valid={len(prod_X_val_final_transformed)}, test={len(prod_y_test)}"
     )
 
     # Evaluation on test data
-    probalities_all = final_pipeline.predict_proba(X_test)
+    probalities_all = final_pipeline.predict_proba(prod_X_test)
 
     y_pred_proba_test = probalities_all[:, 1]
-    y_pred_test = final_pipeline.predict(X_test)
-    test_metrics = calculate_classification_metrics(y_test, y_pred_proba_test, y_pred_test)
+    y_pred_test = final_pipeline.predict(prod_X_test)
+    test_metrics = calculate_classification_metrics(
+        prod_y_test, y_pred_proba_test, y_pred_test
+    )
 
     evaluation_method = stats_utils.evaluate_classifier_model
 
@@ -1171,7 +1323,19 @@ def run_pipeline_config(
         predictions,
         probabilities,
         probabilities_match_id,
-    ) = evaluation_method(final_pipeline, X_test, y_test)
+    ) = evaluation_method(final_pipeline, prod_X_test, prod_y_test)
+    # y_pred_proba_test = probalities_all[:, 1]
+    # y_pred_test = final_pipeline.predict(X_test)
+    # test_metrics = calculate_classification_metrics(y_test, y_pred_proba_test, y_pred_test)
+    #
+    # evaluation_method = stats_utils.evaluate_classifier_model
+    #
+    # (
+    #     metrics,
+    #     predictions,
+    #     probabilities,
+    #     probabilities_match_id,
+    # ) = evaluation_method(final_pipeline, X_test, y_test)
 
     # Package results
     result = ModelTrainingResult(
@@ -1179,201 +1343,24 @@ def run_pipeline_config(
         prod_model=final_pipeline,
         test_data=TestTrainData(
             test_model=final_pipeline,
-            y_test=y_test,
-            x_test=X_test,
+            y_test=prod_y_test,
+            x_test=prod_X_test,
             predictions=predictions,
             probabilities=probabilities,
             metrics=metrics,
-            metrics_2=test_metrics
-        )
+            metrics_2=test_metrics,
+        ),
     )
     result.cm_data = CMResultsData(
         final_pipeline,
-        y_test,
-        X_test,
+        prod_y_test,
+        prod_X_test,
         predictions,
         class_accuracies={},
         probabilities=pd.DataFrame(),
     )
 
     return result
-
-
-def run_pipeline_config_LEGACY_PRE_GLBM(
-        tuning_result: TuningResult,
-        df: pd.DataFrame,
-        cv: Optional[
-            Any
-        ] = None,  # Assume CVType is a type hint for cross-validation strategies
-        VERBOSE: bool = True,
-) -> ModelTrainingResult:
-    """
-    Execute the training pipeline for a given configuration, supporting both classifiers and regressors.
-
-    Parameters:
-    - config: Configuration for the model.
-    - features: Input features for model training.
-    - labels: Target labels for model training.
-    - model_type: Specifies whether the model is a classifier or regressor.
-    - export_prod: Flag to indicate whether to export the model for production.
-    - export_test: Flag to indicate whether to export test results.
-    - cv: Cross-validation splitting strategy.
-    - VERBOSE: Flag to control verbosity of the output.
-
-    Returns:
-    - ModelTrainingResult: Object containing the results of the training process.
-    """
-    if hasattr(
-            tuning_result.model_pipeline_config.transformer_config, "fixed_preprocessors"
-    ):
-        if tuning_result.model_pipeline_config.transformer_config.fixed_preprocessors:
-            df = run_fixed_transformers(
-                tuning_result.model_pipeline_config.transformer_config.fixed_preprocessors,
-                df,
-            )
-
-    def calculate_regression_metrics(labels: pd.Series, predictions: pd.Series) -> Dict:
-        """Calculate regression metrics."""
-        metrics = {
-            "mse": mean_squared_error(labels, predictions),
-            "rmse": np.sqrt(
-                mean_squared_error(labels, predictions)
-            ),  # Root Mean Squared Error
-            "mae": mean_absolute_error(labels, predictions),  # Mean Absolute Error
-            "r2": r2_score(labels, predictions),  # R-squared
-            "medae": median_absolute_error(
-                labels, predictions
-            ),  # Median Absolute Error
-        }
-
-        # MAPE calculation, handling cases where labels could be 0
-        mape = (
-                np.mean(
-                    np.abs((labels - predictions) / labels)
-                    .replace([np.inf, -np.inf], np.nan)
-                    .dropna()
-                )
-                * 100
-        )
-        metrics["mape"] = mape  # Mean Absolute Percentage Error
-
-        return metrics
-
-    model_pipeline_config = tuning_result.model_pipeline_config
-    features_all, labels_all = _get_features_labels(df)
-
-    X_train, X_test, y_train, y_test = get_deterministic_train_test_split(
-        features_all, labels_all
-    )
-    # X_train, X_test, y_train, y_test = train_test_split(
-    #     features_all, labels_all, test_size=0.2, random_stateint=42
-    # )
-
-    features = X_train
-    labels = y_train
-
-    best_params = tuning_result.get_best_params()
-
-    model_type = model_pipeline_config.model_config.get_type()
-    res = ModelTrainingResult()
-    cv = _get_cv_for_config(
-        model_type_a=model_pipeline_config.model_config.get_type(), cv=cv
-    )
-
-    if cv is not None:
-        cv_pipeline = get_pipeline(model_pipeline_config, best_params=best_params)
-        splits = list(cv.split(features, labels))
-
-        all_predictions = cross_val_predict(
-            cv_pipeline, features, labels, cv=splits, method="predict", n_jobs=-1
-        )
-        all_predictions = pd.Series(all_predictions, index=labels.index)
-
-        if model_type.value == ModelType.Classifier.value:
-            all_probabilities = cross_val_predict(
-                cv_pipeline,
-                features,
-                labels,
-                cv=splits,
-                method="predict_proba",
-                n_jobs=-1,
-            )
-            all_probabilities = pd.DataFrame(all_probabilities, index=labels.index)
-
-            if "threshold__threshold" in best_params:
-                threshold = best_params["threshold__threshold"]
-                positive_class_probabilities = all_probabilities.iloc[:, 1]
-                all_predictions = (positive_class_probabilities >= threshold).astype(
-                    int
-                )
-
-            cv_metrics_results = calculate_classification_metrics(
-                labels, all_predictions, all_probabilities
-            )
-            res.cm_data = CMResultsData(
-                cv_pipeline,
-                labels,
-                features,
-                all_predictions,
-                all_probabilities,
-                class_accuracies={},
-            )
-
-        elif model_type.value == ModelType.Regressor.value:
-            cv_metrics_results = calculate_regression_metrics(labels, all_predictions)
-            res.cm_data = CMResultsData(
-                cv_pipeline,
-                labels,
-                features,
-                all_predictions,
-                class_accuracies={},
-                probabilities=pd.DataFrame(),
-            )
-        else:
-            raise Exception("Unknown model type")
-
-        res.cv_metrics = cv_metrics_results
-        res.cv_metrics["n_samples"] = len(features)
-
-    test_pipeline = get_pipeline(model_pipeline_config, best_params=best_params)
-
-    print(
-        f"Training: {model_pipeline_config.model_config.model_key} with: {best_params}"
-    )
-    test_pipeline.fit(X_train, y_train)
-
-    if "preprocessing" in test_pipeline.named_steps:
-        preprocessor = test_pipeline.named_steps["preprocessing"]
-        X_test_transformed = preprocessor.transform(X_test)
-    else:
-        X_test_transformed = X_test
-
-    evaluation_method = (
-        stats_utils.evaluate_classifier_model
-        if model_type == ModelType.Classifier
-        else stats_utils.evaluate_regressor_model
-    )
-
-    (
-        metrics,
-        predictions,
-        probabilities,
-        probabilities_match_id,
-    ) = evaluation_method(test_pipeline, X_test, y_test)
-
-    res.test_data = TestTrainData(
-        test_model=test_pipeline,
-        x_test_transformed=X_test_transformed,
-        x_test=X_test,
-        x_train=X_train,
-        y_test=y_test,
-        predictions=predictions,
-        probabilities=probabilities,
-        metrics=metrics,
-        class_accuracies=None,
-    )
-
-    return res
 
 
 def build_cv_results_table(cv_results: Dict[str, ModelTrainingResult], VERBOSE=True):

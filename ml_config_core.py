@@ -27,7 +27,8 @@ from sklearn.metrics import (
     average_precision_score,
     accuracy_score,
     recall_score,
-    log_loss, roc_auc_score,
+    log_loss,
+    roc_auc_score,
 )
 from sklearn.model_selection import StratifiedKFold
 from sklearn.neighbors import KNeighborsClassifier
@@ -54,7 +55,7 @@ def neg_log_loss(y_true, y_pred):
 
 # Update your tunning_func_target to use the neg_log_loss
 tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-    default_factory=lambda: make_scorer(neg_log_loss, response_method='predict_proba')
+    default_factory=lambda: make_scorer(neg_log_loss, response_method="predict_proba")
 )
 
 
@@ -258,7 +259,13 @@ class ModelConfig:
     def optuna_objective(trial, X, y, cv):
         raise NotImplementedError()
 
-    def fit_model(self, model: BaseEstimator, X_train: np.ndarray, y_train: np.ndarray, **fit_params: Any):
+    def fit_model(
+        self,
+        model: BaseEstimator,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        **fit_params: Any,
+    ):
         return model.fit(X_train, y_train)
 
 
@@ -300,6 +307,7 @@ class ModelConfig:
 #     builtin_params: Dict[str, Any] = field(default_factory=lambda: {})
 #     best_params: Dict[str, Any] = field(default_factory=lambda: {})
 #
+
 
 @dataclass
 class XGBoostBaseConfig(ModelConfig):
@@ -590,13 +598,15 @@ class RandomForestBaseConfig(ModelConfig):
 #         },
 #     )
 class CustomLGBMClassifier(LGBMClassifier):
-    def fit(self,
-            train_features,
-            train_labels,
-            categorical_feature=None,
-            eval_set: Optional[List] = None,
-            eval_names=('valid', 'train'),
-            **kwargs):
+    def fit(
+        self,
+        train_features,
+        train_labels,
+        categorical_feature=None,
+        eval_set: Optional[List] = None,
+        eval_names=("valid", "train"),
+        **kwargs,
+    ):
         # Example: Print a message before fitting the model
         print("Custom fit method is called.")
 
@@ -604,17 +614,19 @@ class CustomLGBMClassifier(LGBMClassifier):
         # You can add custom logic here before or after calling the super method
         # return super().fit(X, y, **kwargs)
 
-        kwargs.setdefault('eval_metric', "auc")
+        kwargs.setdefault("eval_metric", "auc")
 
-        super().fit(train_features, train_labels,
-                    # eval_metric='auc',
-                    # eval_set=[(valid_features, valid_labels), (train_features, train_labels)],
-                    eval_set=eval_set,
-                    # eval_names=['valid', 'train'],
-                    eval_names=eval_names,
-                    categorical_feature=categorical_feature,
-
-                    **kwargs)
+        super().fit(
+            train_features,
+            train_labels,
+            # eval_metric='auc',
+            # eval_set=[(valid_features, valid_labels), (train_features, train_labels)],
+            eval_set=eval_set,
+            # eval_names=['valid', 'train'],
+            eval_names=eval_names,
+            categorical_feature=categorical_feature,
+            **kwargs,
+        )
 
         # If you need to modify or access attributes after fitting, you can do so here
         # For example: print("Model fitting is complete.")
@@ -636,7 +648,9 @@ class Range:
         raise ValueError(self.start)
 
     def __repr__(self):
-        return f"Range({self.start}, {self.end}, {self.step}, {self.value_type.__name__})"
+        return (
+            f"Range({self.start}, {self.end}, {self.step}, {self.value_type.__name__})"
+        )
 
 
 @dataclass
@@ -661,33 +675,63 @@ class LGBMBaseConfig(ModelConfig):
 
     preprocessing: Optional[Callable] = ml_config_preproc.preprocessing_for_lgbm()
 
-    param_grid: Dict[str, Any] = field(default_factory=lambda:
-    {
-
-        # "model__class_weight": ['balanced', None],  # Categorical
-        # "model__objective": ['binary'],  # Categorical with a single option
-        # "model__boosting_type": ['gbdt', 'rf', 'dart'],  # Categorical with a single option
-        "model__n_estimators": Range(50, 1000, step=50),  # Numeric range, automatically inferred as integer
-        "model__learning_rate": Range(0.01, 0.3, 0.01),  # Numeric range, automatically inferred as float
-        "model__max_depth": Range(3, 11, 1),  # Numeric range, automatically inferred as float
-        "model__num_leaves": Range(8, 256, 8),  # Numeric range, automatically inferred as float
-        "model__min_gain_to_split": Range(0.0, 15.0, 0.5),  # Numeric range, automatically inferred as float
-        "model__min_data_in_leaf": Range(0, 3000, 100),  # Numeric range, automatically inferred as float
-        "model__lambda_l1": Range(0, 110, step=5),  # Numeric range, automatically inferred as float
-        "model__lambda_l2": Range(0, 110, step=5),  # Numeric range, automatically inferred as float
-        "model__bagging_fraction": Range(0.2, 1.0, step=0.1),  # Numeric range, automatically inferred as float
-        "model__feature_fraction": Range(0.2, 1.0, 0.1),  # Numeric range, automatically inferred as float
-        "model__max_bin": Range(50, 500, 25),  # Numeric range, automatically inferred as float
-        # Add other parameters as needed
-    }
-
-                                       )
+    param_grid: Dict[str, Any] = field(
+        default_factory=lambda: {
+            "model__class_weight": ["balanced", None],  # Categorical
+            "model__objective": ["binary"],  # Categorical with a single option
+            "model__boosting_type": [
+                "gbdt",
+                "rf",
+                "dart",
+            ],  # Categorical with a single option
+            "model__n_estimators": Range(
+                50, 1000, step=50
+            ),  # Numeric range, automatically inferred as integer
+            "model__learning_rate": Range(
+                0.01, 0.3, 0.01
+            ),  # Numeric range, automatically inferred as float
+            "model__max_depth": Range(
+                3, 11, 1
+            ),  # Numeric range, automatically inferred as float
+            "model__num_leaves": Range(
+                8, 256, 8
+            ),  # Numeric range, automatically inferred as float
+            "model__min_gain_to_split": Range(
+                0.0, 15.0, 0.5
+            ),  # Numeric range, automatically inferred as float
+            "model__min_data_in_leaf": Range(
+                0, 3000, 100
+            ),  # Numeric range, automatically inferred as float
+            "model__lambda_l1": Range(
+                0, 110, step=5
+            ),  # Numeric range, automatically inferred as float
+            "model__lambda_l2": Range(
+                0, 110, step=5
+            ),  # Numeric range, automatically inferred as float
+            "model__bagging_fraction": Range(
+                0.2, 1.0, step=0.1
+            ),  # Numeric range, automatically inferred as float
+            "model__feature_fraction": Range(
+                0.2, 1.0, 0.1
+            ),  # Numeric range, automatically inferred as float
+            "model__max_bin": Range(
+                50, 500, 25
+            ),  # Numeric range, automatically inferred as float
+            # **{'model__n_estimators': [900], 'model__learning_rate': [0.27], 'model__max_depth': [4],
+            #    'model__num_leaves': [160],
+            #    'model__min_gain_to_split': [1.5], 'model__min_data_in_leaf': [2200], 'model__lambda_l1': [85],
+            #    'model__lambda_l2': [90], 'model__bagging_fraction': [0.5], 'model__feature_fraction': [1.0],
+            #    'model__max_bin': [250]},
+            "model__drop_rate": Range(0.00, 1.0, 0.025),
+            # Add other parameters as needed
+        }
+    )
     builtin_params: Dict[str, Any] = field(
         default_factory=lambda: {
             # "model__boosting_type": "dart",  # ,['gbdt', 'rf', 'dart']
             # "model__boosting_type": "rf",  # ,['gbdt', 'rf', 'dart']
-            "model__objective": 'binary',
-            "model__class_weight": 'balanced',
+            "model__objective": "binary",
+            "model__class_weight": "balanced",
             "model__random_state": 42,
             "model__verbose": -1,
             "model__n_jobs": -1,
@@ -728,21 +772,25 @@ class LGBMBaseConfig(ModelConfig):
 @dataclass
 class LGBMTuneAUC(LGBMBaseConfig):
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-        default_factory=lambda: make_scorer(roc_auc_score, response_method='predict_proba')
+        default_factory=lambda: make_scorer(
+            roc_auc_score, response_method="predict_proba"
+        )
     )
 
 
 @dataclass
 class LGBMDartTuneAUC(LGBMBaseConfig):
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-        default_factory=lambda: make_scorer(roc_auc_score, response_method='predict_proba')
+        default_factory=lambda: make_scorer(
+            roc_auc_score, response_method="predict_proba"
+        )
     )
     builtin_params: Dict[str, Any] = field(
         default_factory=lambda: {
             "model__boosting_type": "dart",  # ,['gbdt', 'rf', 'dart']
             # "model__boosting_type": "rf",  # ,['gbdt', 'rf', 'dart']
-            "model__objective": 'binary',
-            "model__class_weight": 'balanced',
+            "model__objective": "binary",
+            "model__class_weight": "balanced",
             "model__random_state": 42,
             "model__verbose": -1,
             "model__n_jobs": -1,
@@ -750,17 +798,21 @@ class LGBMDartTuneAUC(LGBMBaseConfig):
             "early_stopping_rounds": 50,
         }
     )
+
+
 @dataclass
 class LGBMRFTuneAUC(LGBMBaseConfig):
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-        default_factory=lambda: make_scorer(roc_auc_score, response_method='predict_proba')
+        default_factory=lambda: make_scorer(
+            roc_auc_score, response_method="predict_proba"
+        )
     )
     builtin_params: Dict[str, Any] = field(
         default_factory=lambda: {
             "model__boosting_type": "rf",  # ,['gbdt', 'rf', 'dart']
             # "model__boosting_type": "rf",  # ,['gbdt', 'rf', 'dart']
-            "model__objective": 'binary',
-            "model__class_weight": 'balanced',
+            "model__objective": "binary",
+            "model__class_weight": "balanced",
             "model__random_state": 42,
             "model__verbose": -1,
             "model__n_jobs": -1,
@@ -780,14 +832,18 @@ class LGBMTuneF1(LGBMBaseConfig):
 @dataclass
 class LGBMTunePRAUC(LGBMBaseConfig):
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-        default_factory=lambda: make_scorer(average_precision_score, response_method='predict_proba')
+        default_factory=lambda: make_scorer(
+            average_precision_score, response_method="predict_proba"
+        )
     )
 
 
 @dataclass
 class LGBMTuneLogLoss(LGBMBaseConfig):
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-        default_factory=lambda: make_scorer(log_loss, response_method='predict_proba', greater_is_better=False)
+        default_factory=lambda: make_scorer(
+            log_loss, response_method="predict_proba", greater_is_better=False
+        )
     )
 
 
@@ -802,7 +858,8 @@ def weighted_logloss_scorer(estimator, X, y_true):
 @dataclass
 class LGBMTuneWeightedLogLossF1(LGBMBaseConfig):
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-        default_factory=lambda: weighted_logloss_scorer)
+        default_factory=lambda: weighted_logloss_scorer
+    )
 
     # tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
     #     default_factory=lambda: make_scorer(weighted_logloss_scorer, response_method='predict_proba')
@@ -818,65 +875,57 @@ class CatBoostBaseConfigTuneF1(CatBoostBaseConfig):
 # preprocessing = pipeline.ml_config_preproc.preprocessing_for_xgboost(use_categorical_feature=True),  # Use the experimental feature
 @dataclass
 class CatBoostBaseConfigTuneFBeta_15(CatBoostBaseConfig):
-    tunning_func_target: Optional[
-        Callable[[np.ndarray, np.ndarray], float]
-    ] = make_scorer(fbeta_score, beta=1.5, pos_label=1)
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
+        make_scorer(fbeta_score, beta=1.5, pos_label=1)
+    )
 
 
 @dataclass
 class CatBoostBaseConfigTuneFBeta_20(CatBoostBaseConfig):
-    tunning_func_target: Optional[
-        Callable[[np.ndarray, np.ndarray], float]
-    ] = make_scorer(fbeta_score, beta=2.0, pos_label=1)
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
+        make_scorer(fbeta_score, beta=2.0, pos_label=1)
+    )
 
 
 @dataclass
 class CatBoostBaseConfigTuneFBeta_25(CatBoostBaseConfig):
-    tunning_func_target: Optional[
-        Callable[[np.ndarray, np.ndarray], float]
-    ] = make_scorer(
-        fbeta_score, beta=2.5, pos_label=1
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
+        make_scorer(fbeta_score, beta=2.5, pos_label=1)
     )  # preprocessing = pipeline.ml_config_preproc.preprocessing_for_xgboost(use_categorical_feature=True),  # Use the experimental feature
 
 
 @dataclass
 class CatBoostBaseConfigTuneFBeta_40(CatBoostBaseConfig):
-    tunning_func_target: Optional[
-        Callable[[np.ndarray, np.ndarray], float]
-    ] = make_scorer(
-        fbeta_score, beta=4, pos_label=1
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
+        make_scorer(fbeta_score, beta=4, pos_label=1)
     )  # preprocessing = pipeline.ml_config_preproc.preprocessing_for_xgboost(use_categorical_feature=True),  # Use the experimental feature
 
 
 class CatBoostBaseConfigTuneFBeta_50(CatBoostBaseConfig):
-    tunning_func_target: Optional[
-        Callable[[np.ndarray, np.ndarray], float]
-    ] = make_scorer(
-        fbeta_score, beta=5, pos_label=1
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
+        make_scorer(fbeta_score, beta=5, pos_label=1)
     )  # preprocessing = pipeline.ml_config_preproc.preprocessing_for_xgboost(use_categorical_feature=True),  # Use the experimental feature
 
 
 @dataclass
 class CatBoostBaseConfigTuneFBeta_325(CatBoostBaseConfig):
-    tunning_func_target: Optional[
-        Callable[[np.ndarray, np.ndarray], float]
-    ] = make_scorer(
-        fbeta_score, beta=3.25, pos_label=1
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
+        make_scorer(fbeta_score, beta=3.25, pos_label=1)
     )  # preprocessing = pipeline.ml_config_preproc.preprocessing_for_xgboost(use_categorical_feature=True),  # Use the experimental feature
 
 
 @dataclass
 class CatBoostBaseConfigTuneRecall(CatBoostBaseConfig):
-    tunning_func_target: Optional[
-        Callable[[np.ndarray, np.ndarray], float]
-    ] = make_scorer(recall_score, pos_label=1)
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
+        make_scorer(recall_score, pos_label=1)
+    )
 
 
 @dataclass
 class XGBoostTuneRecall(XGBoostBaseConfig):
-    tunning_func_target: Optional[
-        Callable[[np.ndarray, np.ndarray], float]
-    ] = make_scorer(recall_score, pos_label=1)
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
+        make_scorer(recall_score, pos_label=1)
+    )
 
 
 @dataclass
@@ -891,7 +940,7 @@ class XGBoostMulticlassTunePRAUC(XGBoostMulticlassBaseConfig):
     search_n_iter: int = field(default=70)
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
         default_factory=lambda: make_scorer(
-            average_precision_score, response_method='predict_proba', average="micro"
+            average_precision_score, response_method="predict_proba", average="micro"
         )
     )
 
@@ -900,7 +949,9 @@ class XGBoostMulticlassTunePRAUC(XGBoostMulticlassBaseConfig):
 class XGBoostMulticlassTuneLogLoss(XGBoostMulticlassBaseConfig):
     search_n_iter: int = field(default=70)
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-        default_factory=lambda: make_scorer(neg_log_loss, response_method='predict_proba')
+        default_factory=lambda: make_scorer(
+            neg_log_loss, response_method="predict_proba"
+        )
     )
 
 
@@ -916,7 +967,9 @@ class XGBoostTuneF1(XGBoostBaseConfig):
 class XGBoostTuneLogLoss(XGBoostBaseConfig):
     search_n_iter: int = field(default=100)
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-        default_factory=lambda: make_scorer(neg_log_loss, response_method='predict_proba')
+        default_factory=lambda: make_scorer(
+            neg_log_loss, response_method="predict_proba"
+        )
     )
 
 
@@ -932,7 +985,7 @@ class XGBoostTunePRAUC(XGBoostBaseConfig):
     search_n_iter: int = field(default=10)
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
         default_factory=lambda: make_scorer(
-            average_precision_score, response_method='predict_proba', pos_label=1
+            average_precision_score, response_method="predict_proba", pos_label=1
         )
     )
 
@@ -940,39 +993,39 @@ class XGBoostTunePRAUC(XGBoostBaseConfig):
 @dataclass
 class XGBoostTuneCatFBeta_25(XGBoostBaseConfig):
     search_n_iter: int = field(default=250)
-    tunning_func_target: Optional[
-        Callable[[np.ndarray, np.ndarray], float]
-    ] = make_scorer(fbeta_score, beta=2.5, pos_label=1)
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
+        make_scorer(fbeta_score, beta=2.5, pos_label=1)
+    )
 
 
 class XGBoostTuneCatFBeta_325(XGBoostBaseConfig):
     search_n_iter: int = field(default=250)
-    tunning_func_target: Optional[
-        Callable[[np.ndarray, np.ndarray], float]
-    ] = make_scorer(fbeta_score, beta=3.25, pos_label=1)
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
+        make_scorer(fbeta_score, beta=3.25, pos_label=1)
+    )
 
 
 class XGBoostTuneCatFBeta_40(XGBoostBaseConfig):
     search_n_iter: int = field(default=250)
-    tunning_func_target: Optional[
-        Callable[[np.ndarray, np.ndarray], float]
-    ] = make_scorer(fbeta_score, beta=4.0, pos_label=1)
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
+        make_scorer(fbeta_score, beta=4.0, pos_label=1)
+    )
 
 
 class XGBoostTuneCatFBeta_50(XGBoostBaseConfig):
     search_n_iter: int = field(default=250)
-    tunning_func_target: Optional[
-        Callable[[np.ndarray, np.ndarray], float]
-    ] = make_scorer(fbeta_score, beta=5.0, pos_label=1)
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
+        make_scorer(fbeta_score, beta=5.0, pos_label=1)
+    )
 
 
 # TODO: reame to precision recall
 @dataclass
 class XGBoostTuneCatFBeta_25_TuneThreshold(XGBoostBaseConfig):
     search_n_iter: int = field(default=250)
-    tunning_func_target: Optional[
-        Callable[[np.ndarray, np.ndarray], float]
-    ] = make_scorer(average_precision_score, response_method='predict_proba')
+    tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
+        make_scorer(average_precision_score, response_method="predict_proba")
+    )
 
     param_grid: Dict[str, List[Any]] = field(
         default_factory=lambda: {
@@ -1120,7 +1173,7 @@ class OLD_ModelTrainingResult:
 
     @staticmethod
     def serialize_model(
-            res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR
+        res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR
     ):
         if not os.path.exists(target_folder):
             os.makedirs(target_folder)
@@ -1131,7 +1184,7 @@ class OLD_ModelTrainingResult:
 
     @staticmethod
     def load_serialize_model(
-            model_key, target_folder=EXPORT_MODEL_DIR
+        model_key, target_folder=EXPORT_MODEL_DIR
     ) -> "ModelTrainingResult":
         target_path = f"{target_folder}/{model_key}.dill"
 
@@ -1144,6 +1197,7 @@ class ModelTrainingResultMetadata:
     elapsed_time: float
     total_size: Optional[float] = None
 
+
 @dataclass
 class ModelTrainingResult:
     cv_metrics: Optional[Dict[str, float]] = None
@@ -1154,7 +1208,7 @@ class ModelTrainingResult:
 
     @staticmethod
     def serialize_model(
-            res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR
+        res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR
     ):
         if not os.path.exists(target_folder):
             os.makedirs(target_folder)
@@ -1164,13 +1218,15 @@ class ModelTrainingResult:
             dump(res, targt_file)
 
         file_size_bytes = os.path.getsize(target_path)
-        file_size_megabytes = file_size_bytes / (1024 * 1024)  # Convert bytes to megabytes
+        file_size_megabytes = file_size_bytes / (
+            1024 * 1024
+        )  # Convert bytes to megabytes
 
         return file_size_megabytes
 
     @staticmethod
     def load_serialize_model(
-            model_key, target_folder=EXPORT_MODEL_DIR
+        model_key, target_folder=EXPORT_MODEL_DIR
     ) -> "ModelTrainingResult":
 
         def make_writeable(obj):
@@ -1183,10 +1239,12 @@ class ModelTrainingResult:
             elif isinstance(obj, list):
                 # Recursively process list items.
                 return [make_writeable(item) for item in obj]
-            elif hasattr(obj, '__dict__'):
+            elif hasattr(obj, "__dict__"):
                 # Recursively process attributes of custom class objects.
                 for attr_name in dir(obj):
-                    if not attr_name.startswith('__') and not callable(getattr(obj, attr_name)):
+                    if not attr_name.startswith("__") and not callable(
+                        getattr(obj, attr_name)
+                    ):
                         attr = getattr(obj, attr_name)
                         try:
                             setattr(obj, attr_name, make_writeable(attr))
@@ -1201,6 +1259,7 @@ class ModelTrainingResult:
         model = make_writeable(model)
 
         return model
+
 
 class TuneType(Enum):
     Random = 1

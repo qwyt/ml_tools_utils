@@ -55,9 +55,9 @@ def add_spaces_to_caps(s: str) -> str:
     result = [s[0]]
     for char in s[1:]:
         if char.isupper():
-            result.append(' ')
+            result.append(" ")
         result.append(char)
-    return ''.join(result)
+    return "".join(result)
 
 
 class CustomPowerScale(ScaleBase):
@@ -208,15 +208,15 @@ def stacked_box_plot(proportions, total_players_by_league):
 
 
 def confusion_matrix_plot(
-        model_info,
-        title=None,
-        axis_label: Optional[str] = None,
-        labels: Optional[List[str]] = None,
-        ax=None,
-        annotations: str = None,
-        include_sample_count=False,
-        cbar=False,
-        subtitle=None,
+    model_info,
+    title=None,
+    axis_label: Optional[str] = None,
+    labels: Optional[List[str]] = None,
+    ax=None,
+    annotations: str = None,
+    include_sample_count=False,
+    cbar=False,
+    subtitle=None,
 ):
     if ax is None:
         plt.clf()
@@ -224,7 +224,7 @@ def confusion_matrix_plot(
 
     conf_matrix = confusion_matrix(model_info.y_test, model_info.predictions)
     conf_matrix_percentage = (
-            conf_matrix.astype("float") / conf_matrix.sum(axis=1)[:, np.newaxis]
+        conf_matrix.astype("float") / conf_matrix.sum(axis=1)[:, np.newaxis]
     )
 
     if labels is None:
@@ -278,12 +278,12 @@ def confusion_matrix_plot(
 
 
 def confusion_matrix_plot_v2(
-        cm_data,
-        ax=None,
-        title=None,
-        subtitle=None,
-        annotations: str = None,
-        regressor_input: bool = False,
+    cm_data,
+    ax=None,
+    title=None,
+    subtitle=None,
+    annotations: str = None,
+    regressor_input: bool = False,
 ):
     if ax is None:
         fig, ax = plt.subplots(figsize=(8, 8))
@@ -456,14 +456,16 @@ def confusion_matrix_plot_v2(
 
 
 def render_feature_importances_chart(
-        feature_importances: pd.DataFrame,
-        title: str = "Feature Importance",
-        subtitle: str = None,
-        top_n: int = None  # New parameter to specify the top number of features
+    feature_importances: pd.DataFrame,
+    title: str = "Feature Importance",
+    subtitle: str = None,
+    top_n: int = None,  # New parameter to specify the top number of features
 ) -> None:
     # If top_n is specified, select the top_n features by "Importance"
     if top_n is not None:
-        feature_importances = feature_importances.sort_values(by="Importance", ascending=False).head(top_n)
+        feature_importances = feature_importances.sort_values(
+            by="Importance", ascending=False
+        ).head(top_n)
 
     plt.figure(figsize=(10, 8))
     ax = sns.barplot(data=feature_importances, y="Feature", x="Importance")
@@ -530,7 +532,7 @@ def get_counts_for_section(data, start_threshold, end_threshold, inverse=False):
     section_data = data[
         (data["probabilities"] >= start_threshold)
         & (data["probabilities"] < end_threshold)
-        ]
+    ]
     predictions = (data["probabilities"] > start_threshold).astype(int)
 
     y_test = section_data["y_test"]
@@ -614,15 +616,15 @@ def add_threshold_sections(ax, sections, data):
 
 
 def plot_threshold_metrics_v2(
-        model_training_result: CMResultsData,
-        min_threshold,
-        max_threshold,
-        model_name=None,
-        class_pos=None,
-        include_vars: Optional[List[str]] = None,
-        show_threshold_n=False,
-        sections=None,
-        log_x=False,
+    model_training_result: CMResultsData,
+    min_threshold,
+    max_threshold,
+    model_name=None,
+    class_pos=None,
+    include_vars: Optional[List[str]] = None,
+    show_threshold_n=False,
+    sections=None,
+    log_x=False,
 ):
     """
     Plots accuracy, F1 score, and sample count against various threshold values.
@@ -840,7 +842,7 @@ def plot_threshold_metrics_v2(
 
         ax2.get_yaxis().set_major_formatter(plt.ScalarFormatter())
         for T, count in zip(
-                metrics_results["t_values_included"], metrics_results["sample_count"]
+            metrics_results["t_values_included"], metrics_results["sample_count"]
         ):
             if count < 500:
                 ax2.annotate(
@@ -890,28 +892,28 @@ def plot_threshold_metrics_v2(
 
 
 def make_annotations(cv_info: dict, n_feats: Optional[int] = None):
-    log_loss = f"log_loss={cv_info['log_loss']:.3f}, " if "log_loss" in cv_info else ""
-    f1 = f"f1={cv_info['f1_macro']:.3f}, " if "f1_macro" in cv_info else ""
-    auc = f"auc={cv_info['auc']:.3f}, "
+    log_loss = f"log_loss={cv_info['log_loss']:.2f}, " if "log_loss" in cv_info else ""
+    f1 = f"f1={cv_info['f1_macro']:.2f}, " if "f1_macro" in cv_info else ""
+    auc = f"auc={cv_info['auc']:.2f}, "
     precision = (
         f"precision={cv_info['precision_macro']:.2f}, "
         if "precision_macro" in cv_info
         else ""
     )
     recall = (
-        f"recall={cv_info['recall_macro']:.3f}, " if "recall_macro" in cv_info else ""
+        f"recall={cv_info['recall_macro']:.2f}, " if "recall_macro" in cv_info else ""
     )
-    accuracy = f"accuracy={cv_info['accuracy']:.3f}" if "accuracy" in cv_info else ""
+    accuracy = f"accuracy={cv_info['accuracy']:.2f}" if "accuracy" in cv_info else ""
     n_feats_str = "" if n_feats is None else f"\nn_features={n_feats}"
     return f"{auc}macro: {log_loss}{f1}{precision}{recall}{accuracy}{n_feats_str}"
 
 
 def roc_precision_recal_grid_plot(
-        # confusion_matrices,
-        model_training_results: Dict[str, ModelTrainingResult],
-        add_fbeta_25=False,
-        threshold_x_axis=True,
-        show_observation_count=False
+    # confusion_matrices,
+    model_training_results: Dict[str, ModelTrainingResult],
+    add_fbeta_25=False,
+    threshold_x_axis=True,
+    show_observation_count=False,
 ):
     n = len(model_training_results)
     columns = 2
@@ -993,8 +995,15 @@ def roc_precision_recal_grid_plot(
 
                 # Create a secondary y-axis
                 ax2 = axes[i, 1].twinx()
-                ax2.plot(thresholds, observation_counts, label="Observation Count", linestyle="--", color="grey",
-                         alpha=0.85, linewidth=1.2)
+                ax2.plot(
+                    thresholds,
+                    observation_counts,
+                    label="Observation Count",
+                    linestyle="--",
+                    color="grey",
+                    alpha=0.85,
+                    linewidth=1.2,
+                )
                 ax2.set_ylabel("Observation Count")
                 ax2.grid(False)
 
@@ -1004,7 +1013,6 @@ def roc_precision_recal_grid_plot(
                 lines, labels = axes[i, 1].get_legend_handles_labels()
                 lines2, labels2 = ax2.get_legend_handles_labels()
                 axes[i, 1].legend(lines + lines2, labels + labels2, loc="best")
-
 
         else:
             # Precision-Recall Curve for Class=1
@@ -1026,9 +1034,9 @@ def roc_precision_recal_grid_plot(
             )
 
             f2_5_scores = (
-                    (1 + 2.5 ** 2)
-                    * (precision * recall)
-                    / ((2.5 ** 2 * precision) + recall + np.finfo(float).eps)
+                (1 + 2.5**2)
+                * (precision * recall)
+                / ((2.5**2 * precision) + recall + np.finfo(float).eps)
             )
             f2_5_scores = np.nan_to_num(f2_5_scores)
 
@@ -1037,14 +1045,15 @@ def roc_precision_recal_grid_plot(
             )
             axes[i, 1].legend(loc="upper right")
 
-        annotations_cv = make_annotations(model_training_result.cv_metrics, n_feats=len(matrix_data.x_test.columns))
+        annotations_cv = make_annotations(model_training_result.cv_metrics)
         annotations_test = make_annotations(model_training_result.test_data.metrics_2)
+        n_feats_str = f"n_feat.={len(matrix_data.x_test.columns)}, n={len(y_test)}"
 
-        annotations = f"CV: {annotations_cv}\nTest: {annotations_test}"
-        annotations += f", n={len(y_test)}"
+        annotations = f"CV:   {annotations_cv}\nTest: {annotations_test}"
+        annotations += f".              \n{n_feats_str}"
         axes[i, 0].text(
-            0.0,
-            -0.11,
+            -0.05,
+            -0.15,
             annotations + "\n",
             ha="left",
             va="center",
@@ -1085,11 +1094,11 @@ def _group_small_internal(proportions: pd.DataFrame, absolute=False):
 
 
 def _summary_features_pie_chart(
-        col_vals: pd.Series,
-        source_df_no_cat: pd.DataFrame,
-        axes,
-        variable: str,
-        group_small=True,
+    col_vals: pd.Series,
+    source_df_no_cat: pd.DataFrame,
+    axes,
+    variable: str,
+    group_small=True,
 ):
     unique_values = col_vals.unique()
 
@@ -1260,7 +1269,9 @@ def render_corr_matrix_based_on_type(source_df: pd.DataFrame):
     for col1 in source_df.columns:
         for col2 in source_df.columns:
             if col1 != col2:
-                corr_value, p_value = stats_utils.correlation_test(source_df[col1], source_df[col2])
+                corr_value, p_value = stats_utils.correlation_test(
+                    source_df[col1], source_df[col2]
+                )
                 corr.loc[col1, col2] = corr_value
                 p_values.loc[col1, col2] = p_value
             else:
@@ -1315,8 +1326,12 @@ def render_corr_matrix_based_on_type(source_df: pd.DataFrame):
 
 
 def draw_distribution_pie_charts(
-        eda_df_ext: pd.DataFrame, split_var="gender", include_cols=None, group_small=True, title: Optional[str] = None,
-        clean_tick_label=True,
+    eda_df_ext: pd.DataFrame,
+    split_var="gender",
+    include_cols=None,
+    group_small=True,
+    title: Optional[str] = None,
+    clean_tick_label=True,
 ):
     if include_cols is None:
         include_cols = [
@@ -1331,7 +1346,11 @@ def draw_distribution_pie_charts(
 
     column_count = ii_empl_df[split_var].nunique()
 
-    fig, axes = plt.subplots(len(include_cols), column_count, figsize=(7 * column_count, len(include_cols) * 5))
+    fig, axes = plt.subplots(
+        len(include_cols),
+        column_count,
+        figsize=(7 * column_count, len(include_cols) * 5),
+    )
     if len(include_cols) == 1:
         axes = np.array([axes]).reshape(-1, 2)
 
@@ -1341,7 +1360,9 @@ def draw_distribution_pie_charts(
     for column in include_cols:
         full_column_data = ii_empl_df[column].value_counts()
         if group_small:
-            grouped_data[column] = _group_small_internal(full_column_data, absolute=True)
+            grouped_data[column] = _group_small_internal(
+                full_column_data, absolute=True
+            )
         else:
             grouped_data[column] = full_column_data
     for i, column in enumerate(include_cols):
@@ -1389,9 +1410,7 @@ def draw_distribution_pie_charts(
                     labels=None,
                     autopct=None,
                     startangle=140,
-
                     colors=[color_map[cat] for cat in data.index],
-
                     wedgeprops=dict(width=0.3),
                     explode=explode,
                 )
@@ -1418,18 +1437,25 @@ def draw_distribution_pie_charts(
                     horizontalalignment=horizontalalignment,
                 )
 
-            axes[i, j].text(0, 0,
-                            f"n={data.sum()}",
-                            horizontalalignment='center', verticalalignment='center',
-                            # fontsize=12,
-                            # weight='bold',
-                            # xy=(x / 2, y / 2),
-                            # xytext=(1.15 * x, 1.15 * y),
-                            fontsize=16,
-                            # arrowprops=dict(arrowstyle="-", connectionstyle=connectionstyle),
-                            # horizontalalignment=horizontalalignment,
-                            )
-    title = f'{add_spaces_to_caps(split_var).replace("_", " ").title()}' if title is None else title
+            axes[i, j].text(
+                0,
+                0,
+                f"n={data.sum()}",
+                horizontalalignment="center",
+                verticalalignment="center",
+                # fontsize=12,
+                # weight='bold',
+                # xy=(x / 2, y / 2),
+                # xytext=(1.15 * x, 1.15 * y),
+                fontsize=16,
+                # arrowprops=dict(arrowstyle="-", connectionstyle=connectionstyle),
+                # horizontalalignment=horizontalalignment,
+            )
+    title = (
+        f'{add_spaces_to_caps(split_var).replace("_", " ").title()}'
+        if title is None
+        else title
+    )
     plt.suptitle(title, fontsize=16, y=1.02)
 
     plt.tight_layout()
@@ -1507,12 +1533,12 @@ def boxen_plot_by_cat(c, eda_df_ext, y_target, drop_small_cats=False):
 
 
 def boxen_plots_by_category(
-        source_df: pd.DataFrame,
-        group_col: str,
-        target_col: str,
-        title: Optional[str] = None,
-        x_label: Optional[str] = None,
-        x_range: Tuple = None,
+    source_df: pd.DataFrame,
+    group_col: str,
+    target_col: str,
+    title: Optional[str] = None,
+    x_label: Optional[str] = None,
+    x_range: Tuple = None,
 ):
     group_names = source_df[group_col].unique()
 
@@ -1596,7 +1622,6 @@ def render_shap_plot(shap_values, X_test, model_title="SHAP Plot", max_display=3
     ax = plt.gca()
 
     shap.summary_plot(
-
         shap_values,
         max_display=max_display,
         features=X_test,
