@@ -237,6 +237,7 @@ def get_pipeline(
         uses_custom_threshold=uses_custom_threshold,
         _best_params=best_params,
     )
+
     def remove_columns_with_prefix(X, prefix):
         return X.loc[:, ~X.columns.str.startswith(prefix)]
 
@@ -619,6 +620,8 @@ class TuningRunData:
             data.append(row)
         df = pd.DataFrame(data)
         return df.sort_values(by="Mean Test Score (AUC)", ascending=False)
+
+
 def scoring_wrapper(scorer, model, X, y_true):
     """
     Adjusted to correctly use the scorer object.
@@ -728,9 +731,7 @@ def run_bayesian_tuning_for_config(
             all_valid_preds.extend(valid_preds_proba.tolist())
 
             end_time = time.time()
-            fold_times.append(
-                end_time - start_time
-            )
+            fold_times.append(end_time - start_time)
 
             print(
                 f"Fold: Tuning: n_train={len(train_labels)}, eval_set={len(valid_labels)}"
@@ -834,7 +835,6 @@ def run_bayesian_tuning_for_config(
     return tunning_result
 
 
-
 def get_tuning_target(config: ModelConfig):
     model_type_a = config.get_type()
     if isinstance(config.tunning_func_target, _BaseScorer):
@@ -892,6 +892,7 @@ def calculate_classification_metrics(
 
     return metrics
 
+
 def get_deterministic_train_test_split(
     df,
     random_state: int = 5,
@@ -906,9 +907,7 @@ def get_deterministic_train_test_split(
     :param include_calibration: Boolean indicating whether to include a calibration set.
     :return: Returns training and test sets, optionally includes calibration set.
     """
-    features, labels = _get_features_labels(
-        df
-    )
+    features, labels = _get_features_labels(df)
     X_train, X_temp, y_train, y_temp = train_test_split(
         features,
         labels,
@@ -996,7 +995,6 @@ def run_pipeline_config(
         for metric in cv_metrics[0]
         if metric != "confusion_matrix"
     }
-
 
     # Final model training on all training data
     final_pipeline = get_pipeline_OPTUNA(

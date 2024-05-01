@@ -1225,7 +1225,7 @@ def summary_df_features(source_df: pandas.DataFrame):
                 ax.set_xlabel(ax.get_xlabel(), fontsize=10)
                 ax.set_ylabel(ax.get_ylabel(), fontsize=10)
 
-            title = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', variable)
+            title = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", variable)
             title = title.replace("_", " ").title()
             if title == "Bmi":
                 title = "BMI"
@@ -1494,6 +1494,7 @@ def boxen_plot_by_cat(c, eda_df_ext, y_target, drop_small_cats=False):
         plt.show()
     else:
         pass
+
 
 def boxen_plots_by_category(
     source_df: pd.DataFrame,

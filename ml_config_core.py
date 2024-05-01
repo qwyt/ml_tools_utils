@@ -260,11 +260,11 @@ class ModelConfig:
         raise NotImplementedError()
 
     def fit_model(
-            self,
-            model: BaseEstimator,
-            X_train: np.ndarray,
-            y_train: np.ndarray,
-            **fit_params: Any,
+        self,
+        model: BaseEstimator,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        **fit_params: Any,
     ):
         return model.fit(X_train, y_train)
 
@@ -599,13 +599,13 @@ class RandomForestBaseConfig(ModelConfig):
 #     )
 class CustomLGBMClassifier(LGBMClassifier):
     def fit(
-            self,
-            train_features,
-            train_labels,
-            categorical_feature=None,
-            eval_set: Optional[List] = None,
-            eval_names=("valid", "train"),
-            **kwargs,
+        self,
+        train_features,
+        train_labels,
+        categorical_feature=None,
+        eval_set: Optional[List] = None,
+        eval_names=("valid", "train"),
+        **kwargs,
     ):
         # Example: Print a message before fitting the model
         print("Custom fit method is called.")
@@ -683,39 +683,17 @@ class LGBMBaseConfig(ModelConfig):
                 "rf",
                 "dart",
             ],
-            "model__n_estimators": Range(
-                50, 1000, step=50
-            ),
-            "model__learning_rate": Range(
-                0.01, 0.3, 0.01
-            ),
-            "model__max_depth": Range(
-                3, 11, 1
-            ),
-            "model__num_leaves": Range(
-                8, 256, 8
-            ),
-            "model__min_gain_to_split": Range(
-                0.0, 15.0, 0.5
-            ),
-            "model__min_data_in_leaf": Range(
-                0, 3000, 100
-            ),
-            "model__lambda_l1": Range(
-                0, 110, step=5
-            ),
-            "model__lambda_l2": Range(
-                0, 110, step=5
-            ),
-            "model__bagging_fraction": Range(
-                0.2, 1.0, step=0.1
-            ),
-            "model__feature_fraction": Range(
-                0.2, 1.0, 0.1
-            ),
-            "model__max_bin": Range(
-                50, 500, 25
-            ),
+            "model__n_estimators": Range(50, 1000, step=50),
+            "model__learning_rate": Range(0.01, 0.3, 0.01),
+            "model__max_depth": Range(3, 11, 1),
+            "model__num_leaves": Range(8, 256, 8),
+            "model__min_gain_to_split": Range(0.0, 15.0, 0.5),
+            "model__min_data_in_leaf": Range(0, 3000, 100),
+            "model__lambda_l1": Range(0, 110, step=5),
+            "model__lambda_l2": Range(0, 110, step=5),
+            "model__bagging_fraction": Range(0.2, 1.0, step=0.1),
+            "model__feature_fraction": Range(0.2, 1.0, 0.1),
+            "model__max_bin": Range(50, 500, 25),
             "model__drop_rate": Range(0.00, 1.0, 0.025),
         }
     )
@@ -1080,7 +1058,7 @@ class OLD_ModelTrainingResult:
 
     @staticmethod
     def serialize_model(
-            res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR
+        res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR
     ):
         if not os.path.exists(target_folder):
             os.makedirs(target_folder)
@@ -1091,7 +1069,7 @@ class OLD_ModelTrainingResult:
 
     @staticmethod
     def load_serialize_model(
-            model_key, target_folder=EXPORT_MODEL_DIR
+        model_key, target_folder=EXPORT_MODEL_DIR
     ) -> "ModelTrainingResult":
         target_path = f"{target_folder}/{model_key}.dill"
 
@@ -1115,7 +1093,7 @@ class ModelTrainingResult:
 
     @staticmethod
     def serialize_model(
-            res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR
+        res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR
     ):
         if not os.path.exists(target_folder):
             os.makedirs(target_folder)
@@ -1125,15 +1103,13 @@ class ModelTrainingResult:
             dump(res, targt_file)
 
         file_size_bytes = os.path.getsize(target_path)
-        file_size_megabytes = file_size_bytes / (
-                1024 * 1024
-        )
+        file_size_megabytes = file_size_bytes / (1024 * 1024)
 
         return file_size_megabytes
 
     @staticmethod
     def load_serialize_model(
-            model_key, target_folder=EXPORT_MODEL_DIR
+        model_key, target_folder=EXPORT_MODEL_DIR
     ) -> "ModelTrainingResult":
 
         def make_writeable(obj):
@@ -1150,7 +1126,7 @@ class ModelTrainingResult:
                 # Recursively process attributes of custom class objects.
                 for attr_name in dir(obj):
                     if not attr_name.startswith("__") and not callable(
-                            getattr(obj, attr_name)
+                        getattr(obj, attr_name)
                     ):
                         attr = getattr(obj, attr_name)
                         try:
