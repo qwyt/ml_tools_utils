@@ -50,13 +50,13 @@ def _export_html(notebook_path, html_output_path, exclude_input):
         align-items: center; /* Center children horizontally */
     }
     div.jp-RenderedImage img {
-        max-width: 960px; /* Set maximum width */
+        max-width: 1280px; /* Set maximum width */
         height: auto; /* Maintain aspect ratio */
     }
     .jp-MarkdownCell {
     }
     .jp-Cell{
-        max-width: 1200px !important;
+        max-width: 1360px !important;
         height: auto;
 
     }
