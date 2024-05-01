@@ -7,22 +7,30 @@ from nbconvert import HTMLExporter
 
 
 def _create_merged_presentation_file(file_paths, output_file):
-    # HTML template for the start and end of the document
-    html_start = "<!DOCTYPE html>\n<html>\n<head>\n<title>Combined HTML</title>\n</head>\n<body>\n"
+    html_start = "<!DOCTYPE html>\n<html>\n<head>\n<title>Presentation</title>\n</head>\n<body>\n"
     html_end = "</body>\n</html>"
 
     combined_content = html_start
+    combined_content_with_code = html_start
 
     for file_path in file_paths:
+        if "Append" in file_path:
+            break
         with open(file_path, "r", encoding="utf-8") as file:
             content = file.read()
-            # Optional: Insert a divider or a header here to separate contents
             combined_content += f"<div class='file-content'>\n{content}\n</div>\n"
+
+        with open(file_path.replace(".html", "_with_code.html"), "r", encoding="utf-8") as file:
+            content = file.read()
+            combined_content_with_code += f"<div class='file-content'>\n{content}\n</div>\n"
 
     combined_content += html_end
 
     with open(output_file, "w", encoding="utf-8") as output:
         output.write(combined_content)
+
+    with open(output_file.replace(".html", "_with_code.html"), "w", encoding="utf-8") as output:
+        output.write(combined_content_with_code)
 
 
 def _export_html(notebook_path, html_output_path, exclude_input):
@@ -108,7 +116,7 @@ def _generate_table_of_contents(target_export_path: str):
 
     file_paths = []
     with open(
-        os.path.join(target_export_path, "index.html"), "w", encoding="utf-8"
+            os.path.join(target_export_path, "index.html"), "w", encoding="utf-8"
     ) as f:
         f.write(
             "<html><body><h1>Lenders Club Loan Dataset Loan Risk Prediction:</h1>\n"

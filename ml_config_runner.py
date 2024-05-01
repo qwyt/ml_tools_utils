@@ -13,28 +13,6 @@ from shared.ml_config_core import (
     ModelTrainingResultMetadata,
 )
 
-
-# def run_tuning_for_config(
-#     model_name: str, pipeline_config: ModelPipelineConfig, df: pd.DataFrame
-# ) -> TuningResult:
-#     start_time = time.time()
-#
-#     print(
-#         f"Tunning:"
-#         f" - transformers: {pipeline_config.transformer_config}"
-#         f""
-#         f"\n\n - model: {model_name} n_iters={pipeline_config.model_config.search_n_iter} with:\n {pipeline_config.model_config.param_grid}"
-#     )
-#
-#     tunning_result = pipeline.run_tunning_for_config(
-#         model_key=model_name, pipeline_config=pipeline_config, df=df
-#     )
-#
-#     end_time = time.time()
-#     elapsed_time = round(end_time - start_time, 1)
-#     print(f"{model_name} Fit, total time:{elapsed_time}\n")
-#
-#     return tunning_result
 def run_tuning_for_config(
     model_name: str, pipeline_config: ModelPipelineConfig, df: pd.DataFrame
 ) -> TuningResult:
@@ -76,7 +54,7 @@ def run_tuning_for_configs_collection(
 def build_production_model_for_tuning_result(
     tuning_result: TuningResult,
     load_df: Callable[..., pd.DataFrame],
-    random_state: int = 420,
+    random_state: int = 5,
 ) -> ModelTrainingResult:
     start_time = time.time()
 

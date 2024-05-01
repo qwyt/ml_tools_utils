@@ -1,3 +1,4 @@
+import re
 from typing import Optional, List, Dict, Tuple
 
 import shap
@@ -296,7 +297,6 @@ def confusion_matrix_plot_v2(
         )
 
     cm = confusion_matrix(cm_data.y_test, predictions)
-    # cm_normalized = cm[:, np.newaxis]
     cm_normalized = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
 
     class_accuracies = np.diag(cm_normalized)
@@ -516,7 +516,6 @@ def roc_curve_plot(y_true, y_probs, ax, labels, annotations, class_idx, n):
     fpr, tpr, _ = roc_curve(y_true, y_probs)
     roc_auc = auc(fpr, tpr)
 
-    # Plot
     ax.plot(fpr, tpr, label=f"Class {labels[class_idx]} (area = {roc_auc:.2f})")
     ax.plot([0, 1], [0, 1], "k--")
     ax.set_xlabel("False Positive Rate")
@@ -524,7 +523,6 @@ def roc_curve_plot(y_true, y_probs, ax, labels, annotations, class_idx, n):
     ax.set_title(f"ROC Curve: Class {labels[class_idx]}")
     ax.legend(loc="lower right")
     annotations += f", n={n}"
-    # ax.text(0.5, 0.2, annotations, fontsize=9, bbox=dict(facecolor='white', alpha=0.5))
     ax.text(0.5, -0.2, annotations, ha="center", va="center", transform=ax.transAxes)
 
 
@@ -709,7 +707,6 @@ def plot_threshold_metrics_v2(
             metrics_results["t_values_included"].append(T)
 
         except Exception as ex:
-            # In case there are no predictions above a given threshold (e.g. using the betting odds model)
             raise ex
 
     fig, ax1 = plt.subplots(figsize=(20, 7))
@@ -763,7 +760,6 @@ def plot_threshold_metrics_v2(
         x_lims = [T_values[0], last_filled_threshold]
         ax1.set_xlim(x_lims)
     else:
-        # FIX:        # ax1.set_xscale('custom_power', factor=-0.75)
         ax1.set_xscale("log")
         tick_positions = [0.025, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.7, 0.9]
 
@@ -771,11 +767,6 @@ def plot_threshold_metrics_v2(
         ax1.set_xticklabels([str(tick) for tick in tick_positions])
         if sections:
             ax1.set_xlim([0, sections[-1]["end"]])
-
-        # ax1.set_xlim(0, 1)
-
-        # TODO: HACK: need to make ticks scale with the custom scale
-        # ax1.set_xticks([.025, .05, .1, .15, .2, .3, .4, .5, .7, .9])
 
     metric_axes = [ax1]
 
@@ -886,30 +877,29 @@ def plot_threshold_metrics_v2(
     else:
         plt.title("Model Performance By Prob. Threshold")
 
-    plt.tight_layout()  # Adjust layout
+    plt.tight_layout()
 
     plt.show()
 
 
 def make_annotations(cv_info: dict, n_feats: Optional[int] = None):
-    log_loss = f"log_loss={cv_info['log_loss']:.2f}, " if "log_loss" in cv_info else ""
+    log_loss = f"log_l.={cv_info['log_loss']:.2f}, " if "log_loss" in cv_info else ""
     f1 = f"f1={cv_info['f1_macro']:.2f}, " if "f1_macro" in cv_info else ""
     auc = f"auc={cv_info['auc']:.2f}, "
     precision = (
-        f"precision={cv_info['precision_macro']:.2f}, "
+        f"prec.={cv_info['precision_macro']:.2f}, "
         if "precision_macro" in cv_info
         else ""
     )
     recall = (
-        f"recall={cv_info['recall_macro']:.2f}, " if "recall_macro" in cv_info else ""
+        f"rec.={cv_info['recall_macro']:.2f}, " if "recall_macro" in cv_info else ""
     )
-    accuracy = f"accuracy={cv_info['accuracy']:.2f}" if "accuracy" in cv_info else ""
+    accuracy = f"accu.={cv_info['accuracy']:.2f}" if "accuracy" in cv_info else ""
     n_feats_str = "" if n_feats is None else f"\nn_features={n_feats}"
     return f"{auc}macro: {log_loss}{f1}{precision}{recall}{accuracy}{n_feats_str}"
 
 
 def roc_precision_recal_grid_plot(
-    # confusion_matrices,
     model_training_results: Dict[str, ModelTrainingResult],
     add_fbeta_25=False,
     threshold_x_axis=True,
@@ -925,13 +915,9 @@ def roc_precision_recal_grid_plot(
         rows, columns, figsize=(width, height * rows), constrained_layout=True
     )
 
-    # for model_key, model_training_result in model_training_results.items():
-    # for i, model_key in enumerate(confusion_matrices):
     for i, model_key in enumerate(model_training_results.keys()):
         model_training_result = model_training_results[model_key]
-        #     matrix_data = confusion_matrices[model_key][1]
         matrix_data = model_training_result.test_data
-        # matrix_data = model_training_result.cm_data
         probabilities = matrix_data.probabilities
         y_test = matrix_data.y_test
 
@@ -987,13 +973,9 @@ def roc_precision_recal_grid_plot(
                 transform=axes[i, 1].transAxes,
             )
             if show_observation_count:
-                # Convert to numpy array for efficient computation
                 prob_array = probabilities.iloc[:, 1].to_numpy()
-
-                # Efficient computation of observation counts greater than thresholds
                 observation_counts = [np.sum(prob_array > t) for t in thresholds]
 
-                # Create a secondary y-axis
                 ax2 = axes[i, 1].twinx()
                 ax2.plot(
                     thresholds,
@@ -1007,9 +989,6 @@ def roc_precision_recal_grid_plot(
                 ax2.set_ylabel("Observation Count")
                 ax2.grid(False)
 
-                # ax2.legend(loc="upper right")
-
-                # Combine legends from the primary and secondary axes
                 lines, labels = axes[i, 1].get_legend_handles_labels()
                 lines2, labels2 = ax2.get_legend_handles_labels()
                 axes[i, 1].legend(lines + lines2, labels + labels2, loc="best")
@@ -1082,13 +1061,11 @@ def _group_small_internal(proportions: pd.DataFrame, absolute=False):
         threshold = 0.025 * proportions.sum()
     else:
         threshold = 100  # Set the threshold for grouping small values (10%)
-    # threshold = 500
 
     small_proportions = proportions[proportions < threshold]
     other_proportion = small_proportions.sum()
     proportions = proportions[proportions >= threshold].copy()
     if other_proportion > 0:
-        # if other_proportion > min(1, proportions.sum() *0.005):
         proportions["Others"] = other_proportion
     return proportions
 
@@ -1154,7 +1131,6 @@ def _summary_features_pie_chart(
         connectionstyle = "angle,angleA=0,angleB={}".format(angle)
         pct = round(np.round(wedge.theta2 - wedge.theta1) / 360 * 100, 1)
         label_tr = clean_tick_label(label)
-        # label_tr = str(label).replace("_", " ").title()
         axes[1].annotate(
             f"{label_tr}: {pct}%",
             xy=(x / 2, y / 2),
@@ -1249,7 +1225,8 @@ def summary_df_features(source_df: pandas.DataFrame):
                 ax.set_xlabel(ax.get_xlabel(), fontsize=10)
                 ax.set_ylabel(ax.get_ylabel(), fontsize=10)
 
-            title = variable.replace("_", " ").title()
+            title = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', variable)
+            title = title.replace("_", " ").title()
             if title == "Bmi":
                 title = "BMI"
             plt.suptitle(title, fontsize=16, y=1.02)
@@ -1368,8 +1345,6 @@ def draw_distribution_pie_charts(
     for i, column in enumerate(include_cols):
         # 1. Determine all possible categories including 'Others' after grouping
         all_categories = ii_empl_df[column].value_counts()
-        # if group_small:
-        #     all_categories = _group_small_internal(all_categories, absolute=True)
 
         # 2. Set up the color map based on the grouped categories
         unique_categories = all_categories.index
@@ -1391,8 +1366,6 @@ def draw_distribution_pie_charts(
                 f"{index}" for index, pct in zip(data.index, data * 100 / data.sum())
             ]
             axes[i, j].set_title(f"{column} for {target}", fontdict={"fontsize": 12})
-
-            # proportions = col_vals.value_counts(normalize=True)
 
             explode = [0.02] * len(data)
 
@@ -1443,13 +1416,7 @@ def draw_distribution_pie_charts(
                 f"n={data.sum()}",
                 horizontalalignment="center",
                 verticalalignment="center",
-                # fontsize=12,
-                # weight='bold',
-                # xy=(x / 2, y / 2),
-                # xytext=(1.15 * x, 1.15 * y),
                 fontsize=16,
-                # arrowprops=dict(arrowstyle="-", connectionstyle=connectionstyle),
-                # horizontalalignment=horizontalalignment,
             )
     title = (
         f'{add_spaces_to_caps(split_var).replace("_", " ").title()}'
@@ -1465,8 +1432,6 @@ def draw_distribution_pie_charts(
 def boxen_plot_by_cat(c, eda_df_ext, y_target, drop_small_cats=False):
     _df = eda_df_ext.copy()
     _df = _df[_df[y_target].notna()]
-    # grouped = _df.groupby(c)[y_target]
-    # groups = [group for name, group in grouped]
 
     if drop_small_cats:
         counts = _df[c].value_counts()
@@ -1529,8 +1494,6 @@ def boxen_plot_by_cat(c, eda_df_ext, y_target, drop_small_cats=False):
         plt.show()
     else:
         pass
-        # return f"{c} vs {y_target} No significant difference found (p-value = {p_value:.3f})"
-
 
 def boxen_plots_by_category(
     source_df: pd.DataFrame,
@@ -1628,7 +1591,6 @@ def render_shap_plot(shap_values, X_test, model_title="SHAP Plot", max_display=3
         feature_names=X_test.columns,
         plot_size=None,  # Disable shap's internal plot sizing
         show=False,  # Prevent shap from showing the plot automatically
-        # ax=ax  # Pass the matplotlib axis object
     )
     plt.title(model_title)
     plt.show()

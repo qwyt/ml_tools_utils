@@ -260,11 +260,11 @@ class ModelConfig:
         raise NotImplementedError()
 
     def fit_model(
-        self,
-        model: BaseEstimator,
-        X_train: np.ndarray,
-        y_train: np.ndarray,
-        **fit_params: Any,
+            self,
+            model: BaseEstimator,
+            X_train: np.ndarray,
+            y_train: np.ndarray,
+            **fit_params: Any,
     ):
         return model.fit(X_train, y_train)
 
@@ -599,13 +599,13 @@ class RandomForestBaseConfig(ModelConfig):
 #     )
 class CustomLGBMClassifier(LGBMClassifier):
     def fit(
-        self,
-        train_features,
-        train_labels,
-        categorical_feature=None,
-        eval_set: Optional[List] = None,
-        eval_names=("valid", "train"),
-        **kwargs,
+            self,
+            train_features,
+            train_labels,
+            categorical_feature=None,
+            eval_set: Optional[List] = None,
+            eval_names=("valid", "train"),
+            **kwargs,
     ):
         # Example: Print a message before fitting the model
         print("Custom fit method is called.")
@@ -655,7 +655,6 @@ class Range:
 
 @dataclass
 class LGBMBaseConfig(ModelConfig):
-    # model: Union[BaseEstimator, List[BaseEstimator]] = CustomLGBMClassifier
     model: Union[BaseEstimator, List[BaseEstimator]] = LGBMClassifier
 
     search_n_iter: int = field(default=10)
@@ -677,59 +676,51 @@ class LGBMBaseConfig(ModelConfig):
 
     param_grid: Dict[str, Any] = field(
         default_factory=lambda: {
-            "model__class_weight": ["balanced", None],  # Categorical
-            "model__objective": ["binary"],  # Categorical with a single option
+            "model__class_weight": ["balanced", None],
+            "model__objective": ["binary"],
             "model__boosting_type": [
                 "gbdt",
                 "rf",
                 "dart",
-            ],  # Categorical with a single option
+            ],
             "model__n_estimators": Range(
                 50, 1000, step=50
-            ),  # Numeric range, automatically inferred as integer
+            ),
             "model__learning_rate": Range(
                 0.01, 0.3, 0.01
-            ),  # Numeric range, automatically inferred as float
+            ),
             "model__max_depth": Range(
                 3, 11, 1
-            ),  # Numeric range, automatically inferred as float
+            ),
             "model__num_leaves": Range(
                 8, 256, 8
-            ),  # Numeric range, automatically inferred as float
+            ),
             "model__min_gain_to_split": Range(
                 0.0, 15.0, 0.5
-            ),  # Numeric range, automatically inferred as float
+            ),
             "model__min_data_in_leaf": Range(
                 0, 3000, 100
-            ),  # Numeric range, automatically inferred as float
+            ),
             "model__lambda_l1": Range(
                 0, 110, step=5
-            ),  # Numeric range, automatically inferred as float
+            ),
             "model__lambda_l2": Range(
                 0, 110, step=5
-            ),  # Numeric range, automatically inferred as float
+            ),
             "model__bagging_fraction": Range(
                 0.2, 1.0, step=0.1
-            ),  # Numeric range, automatically inferred as float
+            ),
             "model__feature_fraction": Range(
                 0.2, 1.0, 0.1
-            ),  # Numeric range, automatically inferred as float
+            ),
             "model__max_bin": Range(
                 50, 500, 25
-            ),  # Numeric range, automatically inferred as float
-            # **{'model__n_estimators': [900], 'model__learning_rate': [0.27], 'model__max_depth': [4],
-            #    'model__num_leaves': [160],
-            #    'model__min_gain_to_split': [1.5], 'model__min_data_in_leaf': [2200], 'model__lambda_l1': [85],
-            #    'model__lambda_l2': [90], 'model__bagging_fraction': [0.5], 'model__feature_fraction': [1.0],
-            #    'model__max_bin': [250]},
+            ),
             "model__drop_rate": Range(0.00, 1.0, 0.025),
-            # Add other parameters as needed
         }
     )
     builtin_params: Dict[str, Any] = field(
         default_factory=lambda: {
-            # "model__boosting_type": "dart",  # ,['gbdt', 'rf', 'dart']
-            # "model__boosting_type": "rf",  # ,['gbdt', 'rf', 'dart']
             "model__objective": "binary",
             "model__class_weight": "balanced",
             "model__random_state": 42,
@@ -739,34 +730,6 @@ class LGBMBaseConfig(ModelConfig):
             "early_stopping_rounds": 50,
         }
     )
-
-    # def fit_model(self, model: BaseEstimator, X_train: np.ndarray, y_train: np.ndarray, **fit_params: Any):
-    #     """
-    #     Wrapper for fit interface, implements model specific parameters
-    #     :param model:
-    #     :param X_train:
-    #     :param y_train:
-    #     :param fit_params:
-    #     :return:
-    #     """
-    #     model.fit(X_train, y_train,
-    #               eval_set=[(X_valid, y_valid)],
-    #             eval_names=['valid'], categorical_feature=cat_indices,
-    #             )
-
-
-# class LGBMTuneF1(LGBMBaseConfig):
-#     search_n_iter: int = field(default=10)
-#     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-#         default_factory=lambda: make_scorer(f1_score, pos_label=1)
-#     )
-
-# class LGBMTuneAUC(LGBMBaseConfig):
-#     search_n_iter: int = field(default=10)
-#     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-#         default_factory=lambda: make_scorer(roc_auc_score)
-#     )
-#
 
 
 @dataclass
@@ -787,8 +750,7 @@ class LGBMDartTuneAUC(LGBMBaseConfig):
     )
     builtin_params: Dict[str, Any] = field(
         default_factory=lambda: {
-            "model__boosting_type": "dart",  # ,['gbdt', 'rf', 'dart']
-            # "model__boosting_type": "rf",  # ,['gbdt', 'rf', 'dart']
+            "model__boosting_type": "dart",  # other options: ['gbdt', 'rf', 'dart']
             "model__objective": "binary",
             "model__class_weight": "balanced",
             "model__random_state": 42,
@@ -809,8 +771,7 @@ class LGBMRFTuneAUC(LGBMBaseConfig):
     )
     builtin_params: Dict[str, Any] = field(
         default_factory=lambda: {
-            "model__boosting_type": "rf",  # ,['gbdt', 'rf', 'dart']
-            # "model__boosting_type": "rf",  # ,['gbdt', 'rf', 'dart']
+            "model__boosting_type": "rf",
             "model__objective": "binary",
             "model__class_weight": "balanced",
             "model__random_state": 42,
@@ -852,7 +813,7 @@ def weighted_logloss_scorer(estimator, X, y_true):
     logloss = log_loss(y_true, y_proba)
     y_pred = np.argmax(y_proba, axis=1)
     f1 = f1_score(y_true, y_pred)
-    return -0.7 * logloss + 0.3 * f1  # Negate logloss to minimize it
+    return -0.7 * logloss + 0.3 * f1
 
 
 @dataclass
@@ -861,18 +822,12 @@ class LGBMTuneWeightedLogLossF1(LGBMBaseConfig):
         default_factory=lambda: weighted_logloss_scorer
     )
 
-    # tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-    #     default_factory=lambda: make_scorer(weighted_logloss_scorer, response_method='predict_proba')
-    # )
 
-
-# @dataclass CatBoostBaseConfigTuneF1 CatBoostBaseConfigTuneFBeta_15 XGBoostTuneF1 CatBoostBaseConfigTuneFBeta_40 CatBoostBaseConfigTuneFBeta_20 CatBoostBaseConfigTuneFBeta_25 XGBoostTuneCatFBeta_25 XGBoostTuneCatF1FBeta_175
 @dataclass
 class CatBoostBaseConfigTuneF1(CatBoostBaseConfig):
     tunning_func_target = (make_scorer(f1_score, pos_label=1),)
 
 
-# preprocessing = pipeline.ml_config_preproc.preprocessing_for_xgboost(use_categorical_feature=True),  # Use the experimental feature
 @dataclass
 class CatBoostBaseConfigTuneFBeta_15(CatBoostBaseConfig):
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
@@ -891,27 +846,27 @@ class CatBoostBaseConfigTuneFBeta_20(CatBoostBaseConfig):
 class CatBoostBaseConfigTuneFBeta_25(CatBoostBaseConfig):
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
         make_scorer(fbeta_score, beta=2.5, pos_label=1)
-    )  # preprocessing = pipeline.ml_config_preproc.preprocessing_for_xgboost(use_categorical_feature=True),  # Use the experimental feature
+    )
 
 
 @dataclass
 class CatBoostBaseConfigTuneFBeta_40(CatBoostBaseConfig):
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
         make_scorer(fbeta_score, beta=4, pos_label=1)
-    )  # preprocessing = pipeline.ml_config_preproc.preprocessing_for_xgboost(use_categorical_feature=True),  # Use the experimental feature
+    )
 
 
 class CatBoostBaseConfigTuneFBeta_50(CatBoostBaseConfig):
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
         make_scorer(fbeta_score, beta=5, pos_label=1)
-    )  # preprocessing = pipeline.ml_config_preproc.preprocessing_for_xgboost(use_categorical_feature=True),  # Use the experimental feature
+    )
 
 
 @dataclass
 class CatBoostBaseConfigTuneFBeta_325(CatBoostBaseConfig):
     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = (
         make_scorer(fbeta_score, beta=3.25, pos_label=1)
-    )  # preprocessing = pipeline.ml_config_preproc.preprocessing_for_xgboost(use_categorical_feature=True),  # Use the experimental feature
+    )
 
 
 @dataclass
@@ -976,8 +931,6 @@ class XGBoostTuneLogLoss(XGBoostBaseConfig):
 @dataclass
 class XGBoostOrdinalRegressor(XGBoostRegressorBaseConfig):
     search_n_iter: int = field(default=50)
-    # tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = field(
-    #     default_factory=lambda: make_scorer(neg_log_loss, response_method='predict_proba'))
 
 
 @dataclass
@@ -1037,52 +990,6 @@ class XGBoostTuneCatFBeta_25_TuneThreshold(XGBoostBaseConfig):
             "model__scale_pos_weight": [1, 5, 10, 20],
         }
     )
-
-
-# @dataclass
-# class XGBoostTuneCatF1FBeta_175(XGBoostBaseConfig):
-#     search_n_iter: int = field(default=250)
-#     tunning_func_target: Optional[
-#         Callable[[np.ndarray, np.ndarray], float]
-#     ] = make_scorer(fbeta_score, beta=175, pos_label=1)
-#
-
-# @dataclass
-# class XGBoostCatF1(XGBoostBaseConfig):
-#     search_n_iter: int = field(default=25)
-#     tunning_func_target: Optional[
-#         Callable[[np.ndarray, np.ndarray], float]
-#     ] = make_scorer(f1_score, pos_label=1)
-#
-
-# @dataclass
-# class XGBoostCatF1UndersampleAuto(XGBoostBaseConfig):
-#     search_n_iter: int = field(default=250)
-#     balancing_config: Optional[Callable] = UnderSamplingConfig()
-#     tunning_func_target: Optional[
-#         Callable[[np.ndarray, np.ndarray], float]
-#     ] = make_scorer(f1_score, pos_label=1)
-#
-
-# @dataclass
-# class FeatureSetConfig:
-#     feature_set: Any
-#     synthetic_funcs: List[Callable]
-#
-#     # TODO: use callable which returns BaseEstimator instead of instance
-#     model: Union[BaseEstimator, List[BaseEstimator]]
-#     supports_nan: bool
-#     best_params: Dict[str, Any]
-#     param_grid: Dict[str, List[Any]]
-#     balancing_config: Optional[BalancingConfig] = None
-#     preprocessing: Optional[Callable] = None
-#     builtin_params: Dict[str, Any] = field(default_factory=dict)
-#     tunning_func_target: Optional[Callable[[np.ndarray, np.ndarray], float]] = None
-#
-#     ensemble_classifier: Optional[Any] = None  # TODO
-#
-#     def __getitem__(self, key):
-#         return getattr(self, key)
 
 
 @dataclass
@@ -1173,7 +1080,7 @@ class OLD_ModelTrainingResult:
 
     @staticmethod
     def serialize_model(
-        res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR
+            res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR
     ):
         if not os.path.exists(target_folder):
             os.makedirs(target_folder)
@@ -1184,7 +1091,7 @@ class OLD_ModelTrainingResult:
 
     @staticmethod
     def load_serialize_model(
-        model_key, target_folder=EXPORT_MODEL_DIR
+            model_key, target_folder=EXPORT_MODEL_DIR
     ) -> "ModelTrainingResult":
         target_path = f"{target_folder}/{model_key}.dill"
 
@@ -1208,7 +1115,7 @@ class ModelTrainingResult:
 
     @staticmethod
     def serialize_model(
-        res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR
+            res: "ModelTrainingResult", model_key: str, target_folder=EXPORT_MODEL_DIR
     ):
         if not os.path.exists(target_folder):
             os.makedirs(target_folder)
@@ -1219,14 +1126,14 @@ class ModelTrainingResult:
 
         file_size_bytes = os.path.getsize(target_path)
         file_size_megabytes = file_size_bytes / (
-            1024 * 1024
-        )  # Convert bytes to megabytes
+                1024 * 1024
+        )
 
         return file_size_megabytes
 
     @staticmethod
     def load_serialize_model(
-        model_key, target_folder=EXPORT_MODEL_DIR
+            model_key, target_folder=EXPORT_MODEL_DIR
     ) -> "ModelTrainingResult":
 
         def make_writeable(obj):
@@ -1243,7 +1150,7 @@ class ModelTrainingResult:
                 # Recursively process attributes of custom class objects.
                 for attr_name in dir(obj):
                     if not attr_name.startswith("__") and not callable(
-                        getattr(obj, attr_name)
+                            getattr(obj, attr_name)
                     ):
                         attr = getattr(obj, attr_name)
                         try:
@@ -1315,16 +1222,7 @@ def estimate_transformer_impact(data: pd.DataFrame, target=ImpactTarget.Transfor
         .get_feature_names_out()
     )
 
-    # Extract coefficients (impacts) from the regression model
-    # impacts = model.named_steps['regressor'].coef_
-    #
-    # # Map coefficients to the corresponding transformer option
-    # impact_dict = dict(zip(feature_names, impacts))
-
-    # Round the impacts to 5 digits
     impacts = np.round(model.named_steps["regressor"].coef_, 4)
-
-    # Create a DataFrame instead of a dictionary
     impact_df = pd.DataFrame(
         {
             "Transformer_Option": feature_names,
